@@ -1,5 +1,6 @@
 :root {
    --accent: #8b1d1d;
+   --error-color: #dc2626;
 }
 
 body {
@@ -34,7 +35,10 @@ label {
     color: #555;
 }
 
-input[type="text"], input[type="number"], textarea, select {
+input[type="text"],
+input[type="number"],
+textarea,
+select {
     width: 100%;
     padding: 10px 12px;
     margin-top: 5px;
@@ -43,6 +47,14 @@ input[type="text"], input[type="number"], textarea, select {
     border: 1px solid #ccc;
     border-radius: 8px;
     box-sizing: border-box;
+}
+
+input[type="text"].error-field, 
+input[type="number"].error-field, 
+textarea.error-field, 
+select.error-field {
+    border: 2px solid var(--error-color);
+    background-color: #ffe6e6;
 }
 
 input:focus, textarea:focus, select:focus, button:focus{
@@ -73,6 +85,11 @@ button:hover{
     background-color:#6e1515;
 }
 
+.error-field {
+    border: 2px solid var(--error-color);
+    background-color: #ffe6e6;
+}
+
 /* Messages */
 .message{
     margin-top:16px;
@@ -85,5 +102,5 @@ button:hover{
 }
 
 .message.error{
-    color:#dc2626;
+    color:var(--error-color);
 }

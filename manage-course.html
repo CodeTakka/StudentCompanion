@@ -8,7 +8,8 @@
 <body>
     <h1>Admin Dashboard - Create Course</h1>
     
-    <form id="createCourseForm">
+    <!-- novalidate so the browser doesn't automatically check constraints -->
+    <form id="createCourseForm" novalidate>
         <label>
             Course Code (required):
             <input type="text" name="code" required placeholder="SOEN287">
