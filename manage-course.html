@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard - Create Course</title>
+    <link rel="stylesheet" href="css/admin-styles.css">
+</head>
+<body>
+    <h1>Admin Dashboard - Create Course</h1>
+    
+    <form id="createCourseForm">
+        <label>
+            Course Code (required):
+            <input type="text" name="code" required placeholder="SOEN287">
+        </label>
+
+        <label>
+            Course Name (required):
+            <input type="text" name="name" required placeholder="Web Programming">
+        </label>
+
+        <label>
+            Instructor Name (required):
+            <input type="text" name="instructor" required placeholder="Dr. Abdelghani">
+        </label>
+
+        <label>
+            Term/Season:
+            <select name="termSeason" required>
+                <option value="">Select season</option>
+                <option value="Fall">Fall</option>
+                <option value="Winter">Winter</option>
+                <option value="Summer">Summer</option>
+            </select>
+        </label>
+
+        <label>
+            Year:
+            <input type="number" name="termYear" required placeholder="2026" min="1900" max="2100">
+        </label>
+
+        <label>
+            Course Description (optional):
+            <textarea name="description" placeholder="This course covers..."></textarea>
+        </label>
+
+        <label>
+            Enable Course:
+            <input type="checkbox" name="enabled" checked>
+        </label>
+
+        <button type="submit">Create Course</button>
+    </form>
+
+    <div id="message"></div>
+
+    <script src="js/manage-course.js"></script>
+</body>
+</html>
