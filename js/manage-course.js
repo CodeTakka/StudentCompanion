@@ -1,6 +1,10 @@
 document.addEventListener("DOMContentLoaded", function() {
     const form = document.getElementById("createCourseForm");
     const messageDiv = document.getElementById("message");
+    const submitButton = document.getElementById("submitCourseButton");
+
+    let courses = [];
+    let editIndex = null; // Index of courses (e.g., The first course created has an index of 0)
 
     const requiredFields = [
         { name: "code", label: "Course Code" },
@@ -19,9 +23,9 @@ document.addEventListener("DOMContentLoaded", function() {
         inputs.forEach(input => input.classList.remove("error-field"));
 
         requiredFields.forEach(field => {
-            const input = form.querySelector(`[name="${field.name}"]`);
+            const input = form.querySelector("[name=" + field.name + "]");
             if (!input) {
-                console.warn(`Field ${field.name} not found`);
+                console.warn("Field " + field.name + " not found");
                 return;
             }
 
@@ -29,7 +33,7 @@ document.addEventListener("DOMContentLoaded", function() {
             if (!input.value.trim()) {
                 input.classList.add("error-field");
                 isValid = false;
-                errors.push(`Please fill "${field.label}"`);
+                errors.push("Please fill " + field.label);
             }
 
             // Extra check for termYear
@@ -45,7 +49,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         if (!isValid) {
             messageDiv.className = "message error";
-            // Join errors with line breaks for readability
+            // Joins errors with line breaks for readability
             messageDiv.innerHTML = errors.join("<br>");
         }
 
@@ -59,7 +63,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (!validateForm()) return;
 
         const code = form.code.value.trim();
-        const name = form.name.value.trim();
+        const courseName = form.name.value.trim();
         const instructor = form.instructor.value.trim();
         const termSeason = form.termSeason.value;
         const termYear = form.termYear.value;
@@ -69,10 +73,99 @@ document.addEventListener("DOMContentLoaded", function() {
         const term = termSeason + " " + termYear;
 
         messageDiv.className = "message success";
-        messageDiv.textContent = `Course "${code}" (${term}) created successfully!`;
 
-        console.log({ code, name, instructor, term, enabled });
+        /* If editIndex is null, that means the course information
+        was null, so that would mean a new course is being created */
+        if (editIndex !== null) {
+            courses[editIndex] = {
+                code: code,
+                name: courseName,
+                instructor: instructor,
+                term: term,
+                description: description,
+                enabled: enabled
+            };
 
+            messageDiv.textContent = "Course updated successfully!";
+            submitButton.textContent = "Create Course";
+            editIndex = null;
+
+        } else {
+            courses.push({
+                code: code,
+                name: courseName,
+                instructor: instructor,
+                term: term,
+                description: description,
+                enabled: enabled
+            });
+
+            messageDiv.textContent = "Course created successfully!";
+        }
+
+        displayCourses();
         form.reset();
     });
+
+
+    function displayCourses() {
+        const list = document.getElementById("courseList");
+        list.innerHTML = "";
+
+        for (let i = 0; i < courses.length; i++) {
+            const course = courses[i];
+
+            list.innerHTML +=
+                "<div class='course-card'>" +
+                    "<div class='course-title'>" +
+                        course.code + " - " + course.name +
+                    "</div>" +
+                    "<div>" +
+                        course.instructor + " | " + course.term +
+                    "</div>" +
+                    "<div>" + 
+                    course.description + 
+                    "</div>" +
+                    "<div class='course-actions'>" +
+                        "<button onclick='editCourse(" + i + ")'>Edit</button>" +
+                        "<button onclick='deleteCourse(" + i + ")'>Delete</button>" +
+                    "</div>" +
+                "</div>";
+        }
+    }
+
+    window.editCourse = function(index) {
+        submitButton.textContent = "Update Course";
+
+        const course = courses[index];
+
+        form.code.value = course.code;
+        form.name.value = course.name;
+        form.instructor.value = course.instructor;
+
+        const termParts = course.term.split(" ");
+        form.termSeason.value = termParts[0];
+        form.termYear.value = termParts[1];
+
+        form.description.value = course.description;
+        form.enabled.checked = course.enabled;
+
+        editIndex = index;
+
+        messageDiv.className = "message";
+        messageDiv.textContent = "Editing course...";
+        
+    };
+
+    window.deleteCourse = function(index) {
+        submitButton.textContent = "Create Course";
+
+        courses.splice(index, 1);
+        displayCourses();
+
+        messageDiv.className = "message success";
+        messageDiv.textContent = "Course deleted successfully.";
+    };
+
+
 });
