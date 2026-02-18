@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">SCC</div>
+      <div>
+        <h1>Smart Course Companion</h1>
+        <p class="sub">Student Dashboard</p>
+      </div>
+    </div>
+
+    <div class="user">
+      <div class="user-text">
+        <p class="small">Logged in as</p>
+        <p class="name" id="studentName">Student</p>
+      </div>
+      <a class="btn ghost" href="#" id="logoutBtn">Logout</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Summary -->
+    <section class="summary">
+      <div class="stat">
+        <p class="label">Courses</p>
+        <p class="value" id="courseCount">0</p>
+      </div>
+      <div class="stat">
+        <p class="label">Term Progress</p>
+        <p class="value"><span id="termProgress">0</span>%</p>
+      </div>
+      <div class="stat">
+        <p class="label">Today</p>
+        <p class="value" id="todayLabel">—</p>
+      </div>
+    </section>
+
+    <section class="grid">
+      <!-- Calendar -->
+      <section class="card calendar-card">
+        <div class="card-head">
+          <h2>Calendar</h2>
+          <div class="cal-controls">
+            <button class="icon-btn" id="prevMonthBtn" aria-label="Previous month">‹</button>
+            <p class="cal-title" id="calTitle">Month YYYY</p>
+            <button class="icon-btn" id="nextMonthBtn" aria-label="Next month">›</button>
+          </div>
+        </div>
+
+        <div class="calendar">
+          <div class="cal-weekdays" id="weekdays"></div>
+          <div class="cal-grid" id="calGrid"></div>
+        </div>
+
+        <div class="legend">
+          <span><span class="dot dot-lecture"></span> Lecture</span>
+          <span><span class="dot dot-lab"></span> Lab</span>
+          <span><span class="dot dot-tutorial"></span> Tutorial</span>
+        </div>
+      </section>
+
+      <!-- Courses + Progress -->
+      <section class="card">
+        <div class="card-head">
+          <h2>Your Courses</h2>
+          <p class="muted">Progress is based on the term timeline.</p>
+        </div>
+
+        <div id="courseGrid" class="course-grid"></div>
+
+        <div class="note">
+          <p class="muted">
+            This dashboard is read-only (Deliverable 1). Your teammate modules can later provide real data.
+          </p>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
