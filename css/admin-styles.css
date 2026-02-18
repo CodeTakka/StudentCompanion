@@ -35,6 +35,14 @@
     margin-right: 8px;
 }
 
+/* Greys out disabled courses
+   This edits the elements with
+   both the course-card class and
+   the disabled class */
+.course-card.disabled {
+    opacity: 0.5;
+    filter: grayscale(100%);
+}
 
 body {
     font-family: Arial, sans-serif;

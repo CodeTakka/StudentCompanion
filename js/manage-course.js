@@ -116,7 +116,8 @@ document.addEventListener("DOMContentLoaded", function() {
             const course = courses[i];
 
             list.innerHTML +=
-                "<div class='course-card'>" +
+                // If course isn't enabled, add the disabled class to it 
+                "<div class='course-card" + (!course.enabled ? " disabled" : "") + "'>" +
                     "<div class='course-title'>" +
                         course.code + " - " + course.name +
                     "</div>" +

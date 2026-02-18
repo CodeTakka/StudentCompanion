@@ -1,20 +1,22 @@
 class Assessment {
-    constructor(name, weight, dueDate = null, visible = false, completed = false) {
+    constructor(name, type, weight, dueDate = null, visible = false, completed = false) {
         this.name = name;
-        this.weight = Math.min(weight, 1); // Ensure weight cannot exceed 1
+        this.type = type; // e.g. "Exam", "Quiz", "Assignment", "Project"
+        this.weight = Math.min(weight, 1);
         this.dueDate = dueDate;
         this.visible = visible;
         this.completed = completed;
     }
 
     toggleCompleted() {
+        // Changes the status from completed to not completed or from not completed to completed
         this.completed = !this.completed;
     }
 
-    // Clone method: returns a new Assessment instance with the same properties
     clone() {
         return new Assessment(
             this.name,
+            this.type,
             this.weight,
             this.dueDate,
             this.visible,
@@ -22,27 +24,34 @@ class Assessment {
         );
     }
 
-    // Calculate weighted grade
     calculateGrade(grade) {
-        const safeGrade = Math.min(grade, 100);  // grade cannot exceed 100
-        const safeWeight = Math.min(this.weight, 1);  // weight cannot exceed 1
+        const safeGrade = Math.min(grade, 100);
+        const safeWeight = Math.min(this.weight, 1);
         return safeGrade * safeWeight;
+    }
+
+    // Format due date as "Feb 12, 2026"
+    formattedDueDate() {
+        if (!this.dueDate) return null;
+        return this.dueDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
     }
 }
 
-// Helper function to create sample assessments
 function createSampleAssessments() {
     return [
-        new Assessment("Assignment", 0.1),
-        new Assessment("Quiz", 0.2),
-        new Assessment("Midterm Exam", 0.2),
-        new Assessment("Final Exam", 0.5)
+        new Assessment("Assignment 1", "Assignment", 0.1, new Date(2026, 1, 12)),
+        new Assessment("Quiz 1",       "Quiz",       0.2, new Date(2026, 2, 5)),
+        new Assessment("Midterm",      "Exam",       0.2, new Date(2026, 2, 20)),
+        new Assessment("Final",        "Exam",       0.5, new Date(2026, 3, 15))
     ];
 }
 
-/* Example usage :
-const a1 = new Assessment("Project", 0.25);
-const a2 = a1.clone();
-console.log(a2); // same as a1
-console.log(a1.calculateGrade(90)); // 90 * 0.25 = 22.5
+/* Example usage:
+    const a = new Assessment("Project", "Project", 0.25, new Date(2026, 1, 12));
+    console.log(a.formattedDueDate()); // "Feb 12, 2026"
+    console.log(a.calculateGrade(90)); // 22.5
 */
