@@ -1,11 +1,12 @@
 class Assessment {
-    constructor(name, type, weight, dueDate = null, visible = false, completed = false) {
+    constructor(name, type, weight, dueDate = null, visible = false, completed = false, progress = 0) {
         this.name = name;
         this.type = type; // e.g. "Exam", "Quiz", "Assignment", "Project"
         this.weight = Math.min(weight, 1);
         this.dueDate = dueDate;
         this.visible = visible;
         this.completed = completed;
+        this.progress = progress;
     }
 
     toggleCompleted() {
@@ -30,9 +31,18 @@ class Assessment {
         return safeGrade * safeWeight;
     }
 
+    getPercentage() {
+        if (this.earnedMarks === null) return 0;
+        return (this.earnedMarks / this.totalMarks) * 100;
+    }
+
+    getWeightedContribution() {
+        return this.getPercentage() * this.weight;
+    }
+
     // Format due date as "Feb 12, 2026"
     formattedDueDate() {
-        if (!this.dueDate) return null;
+        if (!this.dueDate) return "No due date";
         return this.dueDate.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',

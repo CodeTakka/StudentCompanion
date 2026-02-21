@@ -77,28 +77,37 @@ document.addEventListener("DOMContentLoaded", function() {
         /* If editIndex is null, that means the course information
         was null, so that would mean a new course is being created */
         if (editIndex !== null) {
-            courses[editIndex] = {
-                code: code,
-                name: courseName,
-                instructor: instructor,
-                term: term,
-                description: description,
-                enabled: enabled
-            };
+
+            const course = courses[editIndex];
+
+            /* course is constant, so its size is not changeable
+               but the elements inside of it are changeable */ 
+            course.code = code;
+            course.name = courseName;
+            course.instructor = instructor;
+            course.term = term;
+            course.description = description;
+            course.enabled = enabled;
 
             messageDiv.textContent = "Course updated successfully!";
             submitButton.textContent = "Create Course";
             editIndex = null;
 
-        } else {
-            courses.push({
-                code: code,
-                name: courseName,
-                instructor: instructor,
-                term: term,
-                description: description,
-                enabled: enabled
-            });
+        }
+        
+        else {
+
+            const newCourse = new Course(
+                code,
+                courseName,
+                instructor,
+                term,
+                description,
+                enabled,
+                50 // hardcoded progress of 50%, will be changed in deliverable 2
+            );
+
+            courses.push(newCourse);
 
             messageDiv.textContent = "Course created successfully!";
         }

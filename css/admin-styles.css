@@ -3,6 +3,20 @@
    --error-color: #dc2626;
 }
 
+.progress {
+  width: 100%;
+  background-color: #ddd;
+}
+
+.progress-bar {
+  width: 10%;
+  height: 30px;
+  background-color: var(--accent);
+  text-align: center;
+  line-height: 30px;
+  color: white;
+}
+
 #courseList {
     display: flex;       /* makes children line up horizontally */
     flex-wrap: wrap;     /* wraps to next row if there isn’t enough space */
