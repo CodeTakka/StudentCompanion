@@ -11,9 +11,30 @@ body{
     justify-content: center;
     align-items: center;
     min-height: 100vh;
- background: rgb(154, 207, 236);
+ background: rgb(255, 144, 144);
 }
 
+.student-nav {
+  margin: 20px 0;
+}
+
+.student-nav a {
+  display: inline-block;
+  padding: 10px 18px;
+  margin-right: 8px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 800;
+  background: #ffffff;
+  color: #333333;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
+}
+
+.student-nav a:hover {
+  background: #f0f0f0;
+  border-color: #cccccc;
+}
 
 .wrapper {
     width: 420px;
@@ -130,6 +151,7 @@ justify-content: center;
     box-shadow: 0 0 10px rgba(0, 0 ,0, .1);
     text-decoration: none;
 }
+
 .navigation nav a:hover {
 display: flex;
 text-align: center;
