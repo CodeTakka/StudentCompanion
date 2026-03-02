@@ -1,17 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Admin Dashboard - Create Course</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="css/admin-styles.css">
+</head>
+
+<body>
+
+<header class="topbar">
+
+    <div class="header-left">
+        <div class="logo">SCC</div>
+        <div class="header-text">
+            <h1>Smart Course Companion</h1>
+            <span>Instructor Panel</span>
+        </div>
+    </div>
 
     <nav class="student-nav">
-        <a href="manage-course.html">Manage Courses</a>
+        <a href="manage-course.html" class="active">Manage Courses</a>
         <a href="view-statistics.html">View Statistics</a>
-        <a href="home-page.html">Logout</a>
-  </nav>
-</head>
-<body>
+    </nav>
+
+    <div class="header-right">
+        <a href="home-page.html" class="logout-btn">Logout</a>
+    </div>
+
+</header>
+
     <h1>Admin Dashboard - Create Course</h1>
     
     <!-- novalidate so the browser doesn't automatically check constraints -->

@@ -3,20 +3,6 @@
    --error-color: #dc2626;
 }
 
-.progress {
-  width: 100%;
-  background-color: #ddd;
-}
-
-.progress-bar {
-  width: 10%;
-  height: 30px;
-  background-color: var(--accent);
-  text-align: center;
-  line-height: 30px;
-  color: white;
-}
-
 #courseList {
     display: flex;       /* makes children line up horizontally */
     flex-wrap: wrap;     /* wraps to next row if there isn’t enough space */
@@ -24,7 +10,11 @@
     justify-content: center; /* centers the cards horizontally */
 }
 
-/* Styling for one course */
+/* Styling for courses */
+.course {
+    margin-bottom: 20px;
+}
+
 .course-card {
     flex: 0 0 250px;   /* no grow, no shrink, width 250px */
     margin: 2px;
@@ -156,4 +146,151 @@ button:hover{
 
 .message.error{
     color:var(--error-color);
+}
+
+/* Statistics Layout */
+
+.course-averages {
+    margin-bottom: 50px;
+}
+
+.summary-section {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+}
+
+.summary-card {
+    flex: 1;
+    min-width: 180px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.summary-card p {
+    font-size: 22px;
+    font-weight: bold;
+    margin: 10px 0 0;
+}
+
+.progress {
+  width: 100%;
+  background-color: #ddd;
+  height: 20px;
+  border-radius: 10px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 18px;
+    background: #ddd;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: var(--accent);
+    border-radius: 10px;
+}
+
+.charts-section {
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.chart-card {
+    flex: 1;
+    min-width: 300px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.topbar {
+    background-color: #c94444;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 40px;
+    flex-wrap: wrap;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.logo {
+    width: 45px;
+    height: 45px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #7bdcb5, #c94444);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: black;
+}
+
+.header-text h1 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.header-text span {
+    font-size: 13px;
+    opacity: 0.85;
+}
+
+.student-nav {
+    display: flex;
+    gap: 20px;
+}
+
+.student-nav a {
+    text-decoration: none;
+    background: white;
+    color: #333;
+    padding: 8px 18px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.student-nav a:hover {
+    background: #f2f2f2;
+}
+
+.student-nav a.active {
+    background: #333;
+    color: white;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+}
+
+.logout-btn {
+    background: transparent;
+    border: 2px solid white;
+    padding: 6px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+}
+
+.logout-btn:hover {
+    background: white;
+    color: #c94444;
 }
