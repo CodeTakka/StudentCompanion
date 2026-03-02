@@ -165,7 +165,13 @@ document.addEventListener("DOMContentLoaded", function() {
         );
         
         courses.push(sampleCourse);
-                        
+        sampleCourse.addAssessment(
+            new Assessment("Quiz 1", "Quiz", 0.1, new Date(2026, 1, 25)),
+            new Assessment("Assignment 1", "Assignment", 0.15, new Date(2026, 2, 20)),
+            new Assessment("Midterms", "Exam", 0.25, new Date(2026, 3, 10)),
+            new Assessment("Finals", "Exam", 0.5, new Date(2026, 4, 21))
+        )
+        
         messageDiv.className = "message success";
         messageDiv.textContent = 'Course created successfully';
     
