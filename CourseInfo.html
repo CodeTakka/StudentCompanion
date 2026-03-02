@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CourseInfo</title>
+
+    <style>
+        :root {
+            --bg: #f5f6f8;
+            --panel: #ffffff;
+            --border: #e6e6e6;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --header: #7a7a7a;
+            --accent: #8b1d1d;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            font-family: Arial, Helvetica, sans-serif;
+            color: var(--text);
+        }
+
+        .page {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        h2 { margin: 0 0 8px; font-size: 32px; font-weight: 800; }
+        h3 { margin: 0 0 14px; font-size: 18px; font-weight: 700; }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.06);
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            display: inline-block;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            background: #fff;
+            color: #222;
+        }
+        .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .btn:hover   { filter: brightness(0.96); }
+
+        .btn-row { display: flex; gap: 10px; margin-top: 18px; }
+
+        .progress-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .progress-label { font-size: 14px; font-weight: 700; }
+        .progress-pct   { font-size: 14px; font-weight: 800; color: var(--accent); }
+
+        .bar-track {
+            width: 100%;
+            height: 12px;
+            background: #e5e7eb;
+            border-radius: 99px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            background: #16a34a;
+        }
+        .bar-sub { font-size: 12px; color: var(--muted); }
+    </style>
+</head>
+<body>
+
+<div class="page">
+
+    <h2>Welcome to : SOEN-287</h2>
+    <h3>Teacher name : Abdelghani Benharref</h3>
+    <h3>Term : Winter 2026</h3>
+
+    <div class="panel">
+        <h3>My Progress</h3>
+
+        <div class="progress-row">
+            <span class="progress-label">Current Average</span>
+            <span class="progress-pct">87%</span>
+        </div>
+        <div class="bar-track">
+            <div class="bar-fill" style="width: 87%"></div>
+        </div>
+        <div class="bar-sub">1 assessment pending</div>
+
+        <div class="btn-row">
+            <a class="btn primary" href="grades.html">View Grades</a>
+            <a class="btn" href="assessments.html">View Assessments</a>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>Informations</h3>
+        <p>Dear Students,
+
+            Welcome to this edition of SOEN 287 - Web Programming.
+
+            My name is Abdelghani and I will be facilitating this course this semester. This course aims to provide students with basic knowledge and skills of Web programming, it covers the following topics:
+
+            Internet architecture and protocols. Web applications through clients and servers. Markup languages. Client-side programming using scripting languages. Static website contents and dynamic page generation through server-side programming. Preserving state (client-side) in web applications.
+
+            I wish you a wonderful semester.
+        </p>
+    </div>
+
+</div>
+
+</body>
+</html>
