@@ -3,6 +3,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const messageDiv = document.getElementById("message");
     const submitButton = document.getElementById("submitCourseButton");
 
+    document.getElementById("sampleCourse").addEventListener("click", function() {
+        createSampleCourse();
+        displayCourses();  
+    });
+
     let courses = [];
     let editIndex = null; // Index of courses (e.g., The first course created has an index of 0)
 
@@ -116,7 +121,6 @@ document.addEventListener("DOMContentLoaded", function() {
         form.reset();
     });
 
-
     function displayCourses() {
         const list = document.getElementById("courseList");
         list.innerHTML = "";
@@ -142,6 +146,29 @@ document.addEventListener("DOMContentLoaded", function() {
                     "</div>" +
                 "</div>";
         }
+    }
+
+    function createSampleCourse() {
+        const sampleTerm = {
+            season: 'Winter',
+            year: '2026'
+        };
+        
+        const sampleCourse = new Course(
+            'COMP249',
+            'Object-Oriented Programming II',
+            'Dr. Dargham',
+            sampleTerm.season + ' ' + sampleTerm.year, 
+            'Intermediate to advanced programming topics like inheritance' +
+            ', polymorphism, exception handling, I/O, and more.',
+            true
+        );
+        
+        courses.push(sampleCourse);
+                        
+        messageDiv.className = "message success";
+        messageDiv.textContent = 'Course created successfully';
+    
     }
 
     window.editCourse = function(index) {
