@@ -1,98 +1,428 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Student Dashboard</title>
-  <link rel="stylesheet" href="css/dashboard-styles.css" />
-</head>
-<body>
-  <header class="topbar">
-    <!-- Branding -->
-    <div class="brand">
-      <div class="logo">SCC</div>
-      <div>
-        <h1>Smart Course Companion</h1>
-        <p class="sub">Student Dashboard</p>
-      </div>
-    </div>
+const STORAGE_KEY = "axelle_dashboard_courses_v1";
 
-    <!-- Navigation -->
-    <nav class="student-nav">
-      <a href="dashboard.html">Dashboard</a>
-      <a href="grades.html">Grades</a>
-      <a href="assessments-per-course.html">Assessments</a>
-    </nav>
+// Elements
+const courseForm = document.getElementById("courseForm");
+const coursesList = document.getElementById("coursesList");
+const searchInput = document.getElementById("search");
 
-    <!-- User Actions -->
-    <div class="user">
-      <div class="user-text">
-        <p class="small">Logged in as</p>
-        <p class="name" id="studentName">Student</p>
-      </div>
-      <a class="btn ghost" href="home-page.html" id="logoutBtn">Logout</a>
-    </div>
-  </header>
+const statCourses = document.getElementById("statCourses");
+const statAvgProgress = document.getElementById("statAvgProgress");
+const statAvgGrade = document.getElementById("statAvgGrade");
+const statTerm = document.getElementById("statTerm");
 
-  <main class="container">
-    <!-- Summary -->
-    <section class="summary">
-      <div class="stat">
-        <p class="label">Courses</p>
-        <p class="value" id="courseCount">0</p>
-      </div>
-      <div class="stat">
-        <p class="label">Term Progress</p>
-        <p class="value"><span id="termProgress">0</span>%</p>
-      </div>
-      <div class="stat">
-        <p class="label">Today</p>
-        <p class="value" id="todayLabel">—</p>
-      </div>
-    </section>
+const chart = document.getElementById("courseChart");
+const resetBtn = document.getElementById("resetBtn");
 
-    <section class="grid">
-      <!-- Calendar -->
-      <section class="card calendar-card">
-        <div class="card-head">
-          <h2>Calendar</h2>
-          <div class="cal-controls">
-            <button class="icon-btn" id="prevMonthBtn" aria-label="Previous month">‹</button>
-            <p class="cal-title" id="calTitle">Month YYYY</p>
-            <button class="icon-btn" id="nextMonthBtn" aria-label="Next month">›</button>
+// Modal
+const backdrop = document.getElementById("backdrop");
+const closeModal = document.getElementById("closeModal");
+const editForm = document.getElementById("editForm");
+
+// Calendar elements
+const prevMonthBtn = document.getElementById("prevMonthBtn");
+const nextMonthBtn = document.getElementById("nextMonthBtn");
+const todayBtn = document.getElementById("todayBtn");
+const calendarTitle = document.getElementById("calendarTitle");
+const calendarGrid = document.getElementById("calendarGrid");
+const selectedDateLabel = document.getElementById("selectedDateLabel");
+const dayItems = document.getElementById("dayItems");
+
+// Calendar state
+let calCursor = new Date();      // month being viewed
+let selectedDate = new Date();   // selected day
+
+// -------- Utils --------
+function uid() {
+  return Math.random().toString(16).slice(2) + Date.now().toString(16);
+}
+
+function clampPercent(n) {
+  const x = Number(n);
+  if (Number.isNaN(x)) return 0;
+  return Math.max(0, Math.min(100, x));
+}
+
+// small helpers to avoid HTML injection
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, s => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[s]));
+}
+function escapeAttr(str) {
+  return escapeHtml(str).replace(/"/g, "&quot;");
+}
+
+// -------- Storage --------
+function loadCourses() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCourses(courses) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(courses));
+}
+
+// -------- Stats + Chart --------
+function computeStats(courses) {
+  const count = courses.length;
+  let sumProgress = 0;
+  let sumGrade = 0;
+
+  for (const c of courses) {
+    sumProgress += clampPercent(c.progress);
+    sumGrade += clampPercent(c.grade);
+  }
+
+  const avgProgress = count ? Math.round(sumProgress / count) : null;
+  const avgGrade = count ? Math.round(sumGrade / count) : null;
+
+  const term = count ? (courses[0].term || "—") : "—";
+  return { count, avgProgress, avgGrade, term };
+}
+
+function renderStats(courses) {
+  const { count, avgProgress, avgGrade, term } = computeStats(courses);
+  statCourses.textContent = String(count);
+  statAvgProgress.textContent = avgProgress === null ? "—" : `${avgProgress}%`;
+  statAvgGrade.textContent = avgGrade === null ? "—" : `${avgGrade}%`;
+  statTerm.textContent = term || "—";
+}
+
+function renderChart(courses) {
+  chart.innerHTML = "";
+
+  if (!courses.length) {
+    const p = document.createElement("p");
+    p.className = "hint";
+    p.textContent = "Add at least one course to see the chart.";
+    chart.appendChild(p);
+    return;
+  }
+
+  // each bar height = avg(progress, grade)
+  for (const c of courses) {
+    const value = Math.round((clampPercent(c.progress) + clampPercent(c.grade)) / 2);
+
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    bar.style.height = `${Math.max(6, value)}%`;
+    bar.title = `${c.code}: ${value}%`;
+
+    const label = document.createElement("span");
+    label.textContent = c.code;
+    bar.appendChild(label);
+
+    chart.appendChild(bar);
+  }
+}
+
+// -------- Courses UI --------
+function courseMatches(course, q) {
+  const s = q.toLowerCase();
+  return (
+    course.code.toLowerCase().includes(s) ||
+    course.name.toLowerCase().includes(s) ||
+    course.instructor.toLowerCase().includes(s) ||
+    course.term.toLowerCase().includes(s)
+  );
+}
+
+function renderCourses(courses, query = "") {
+  coursesList.innerHTML = "";
+
+  const filtered = query.trim()
+    ? courses.filter(c => courseMatches(c, query))
+    : courses;
+
+  if (!filtered.length) {
+    const empty = document.createElement("div");
+    empty.className = "card";
+    empty.innerHTML = `<p class="hint">No courses found. Add one using the form above.</p>`;
+    coursesList.appendChild(empty);
+    return;
+  }
+
+  for (const c of filtered) {
+    const wrap = document.createElement("div");
+    wrap.className = "course";
+
+    const progress = clampPercent(c.progress);
+    const grade = clampPercent(c.grade);
+
+    wrap.innerHTML = `
+      <div class="course-top">
+        <div class="course-title">
+          <strong>${escapeHtml(c.code)} — ${escapeHtml(c.name)}</strong>
+          <div class="course-meta">${escapeHtml(c.term)} • ${escapeHtml(c.instructor)}</div>
+
+          <div class="pills">
+            <span class="pill good">Progress: ${progress}%</span>
+            <span class="pill">Grade: ${grade}%</span>
+          </div>
+
+          <div class="progress" aria-label="Course progress bar">
+            <div style="width:${progress}%"></div>
           </div>
         </div>
 
-        <div class="calendar">
-          <div class="cal-weekdays" id="weekdays"></div>
-          <div class="cal-grid" id="calGrid"></div>
+        <div class="course-actions">
+          <button class="btn" data-action="edit" data-id="${c.id}">Edit</button>
+          <button class="btn ghost" data-action="delete" data-id="${c.id}">Delete</button>
         </div>
+      </div>
+    `;
 
-        <div class="legend">
-          <span><span class="dot dot-lecture"></span> Lecture</span>
-          <span><span class="dot dot-lab"></span> Lab</span>
-          <span><span class="dot dot-tutorial"></span> Tutorial</span>
-        </div>
-      </section>
+    wrap.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
 
-      <!-- Courses + Progress -->
-      <section class="card">
-        <div class="card-head">
-          <h2>Your Courses</h2>
-          <p class="muted">Progress is based on the term timeline.</p>
-        </div>
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
 
-        <div id="courseGrid" class="course-grid"></div>
+      if (action === "delete") deleteCourse(id);
+      if (action === "edit") openEditModal(id);
+    });
 
-        <div class="note">
-          <p class="muted">
-            This dashboard is read-only (Deliverable 1). Your teammate modules can later provide real data.
-          </p>
-        </div>
-      </section>
-    </section>
-  </main>
+    coursesList.appendChild(wrap);
+  }
+}
 
-  <script src="dashboard.js"></script>
-</body>
-</html>
+function deleteCourse(id) {
+  const courses = loadCourses();
+  const next = courses.filter(c => c.id !== id);
+  saveCourses(next);
+  rerender(searchInput.value);
+}
+
+function openEditModal(id) {
+  const courses = loadCourses();
+  const course = courses.find(c => c.id === id);
+  if (!course) return;
+
+  editForm.innerHTML = `
+    <label>Course Code
+      <input id="e_code" value="${escapeAttr(course.code)}" required />
+    </label>
+    <label>Term
+      <input id="e_term" value="${escapeAttr(course.term)}" required />
+    </label>
+    <label>Course Name
+      <input id="e_name" value="${escapeAttr(course.name)}" required />
+    </label>
+    <label>Instructor
+      <input id="e_instructor" value="${escapeAttr(course.instructor)}" required />
+    </label>
+    <div class="row">
+      <label>Progress (%)
+        <input id="e_progress" type="number" min="0" max="100" value="${escapeAttr(course.progress)}" required />
+      </label>
+      <label>Grade (%)
+        <input id="e_grade" type="number" min="0" max="100" value="${escapeAttr(course.grade)}" required />
+      </label>
+    </div>
+    <button class="btn primary" type="submit">Save Changes</button>
+  `;
+
+  editForm.onsubmit = (e) => {
+    e.preventDefault();
+
+    const updated = {
+      ...course,
+      code: document.getElementById("e_code").value.trim(),
+      term: document.getElementById("e_term").value.trim(),
+      name: document.getElementById("e_name").value.trim(),
+      instructor: document.getElementById("e_instructor").value.trim(),
+      progress: clampPercent(document.getElementById("e_progress").value),
+      grade: clampPercent(document.getElementById("e_grade").value),
+    };
+
+    const next = courses.map(c => (c.id === id ? updated : c));
+    saveCourses(next);
+    closeEditModal();
+    rerender(searchInput.value);
+  };
+
+  backdrop.classList.add("show");
+  backdrop.setAttribute("aria-hidden", "false");
+}
+
+function closeEditModal() {
+  backdrop.classList.remove("show");
+  backdrop.setAttribute("aria-hidden", "true");
+}
+
+closeModal.addEventListener("click", closeEditModal);
+backdrop.addEventListener("click", (e) => {
+  if (e.target === backdrop) closeEditModal();
+});
+
+// Add course
+courseForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const course = {
+    id: uid(),
+    code: document.getElementById("code").value.trim(),
+    term: document.getElementById("term").value.trim(),
+    name: document.getElementById("name").value.trim(),
+    instructor: document.getElementById("instructor").value.trim(),
+    progress: clampPercent(document.getElementById("progress").value),
+    grade: clampPercent(document.getElementById("grade").value),
+  };
+
+  const courses = loadCourses();
+  courses.push(course);
+  saveCourses(courses);
+
+  courseForm.reset();
+  rerender(searchInput.value);
+});
+
+// Search
+searchInput.addEventListener("input", () => {
+  rerender(searchInput.value);
+});
+
+// Reset
+resetBtn.addEventListener("click", () => {
+  localStorage.removeItem(STORAGE_KEY);
+  rerender(searchInput.value);
+});
+
+// -------- Calendar (Dashboard UI) --------
+// Demo calendar items (placeholder)
+function getDemoCalendarItems() {
+  return [
+    { date: "2026-03-10", title: "SOEN 287 — Assignment 1", note: "Demo item (connect later)" },
+    { date: "2026-03-12", title: "COMP 232 — Quiz", note: "Demo item (connect later)" },
+    { date: "2026-03-15", title: "ENGR 201 — Reflection", note: "Demo item (connect later)" },
+  ];
+}
+
+function fmtISO(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function sameDay(a, b) {
+  return a.getFullYear() === b.getFullYear()
+    && a.getMonth() === b.getMonth()
+    && a.getDate() === b.getDate();
+}
+
+function renderDayPanel() {
+  const iso = fmtISO(selectedDate);
+  selectedDateLabel.textContent = iso;
+
+  const items = getDemoCalendarItems().filter(it => it.date === iso);
+
+  dayItems.innerHTML = "";
+  if (!items.length) {
+    dayItems.innerHTML = `<p class="hint">No items for this day.</p>`;
+    return;
+  }
+
+  for (const it of items) {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `<b>${escapeHtml(it.title)}</b><div class="small">${escapeHtml(it.note)}</div>`;
+    dayItems.appendChild(div);
+  }
+}
+
+function dayCell(dateObj, isMuted) {
+  const iso = fmtISO(dateObj);
+  const itemsOnDay = getDemoCalendarItems().filter(it => it.date === iso);
+
+  const cell = document.createElement("div");
+  cell.className = "day" + (isMuted ? " muted" : "");
+  if (sameDay(dateObj, selectedDate)) cell.classList.add("selected");
+
+  cell.innerHTML = `
+    <div class="num">${dateObj.getDate()}</div>
+    <div class="dotline">
+      ${itemsOnDay.slice(0, 4).map(() => `<span class="cdot"></span>`).join("")}
+    </div>
+  `;
+
+  cell.addEventListener("click", () => {
+    selectedDate = new Date(dateObj);
+    [...calendarGrid.querySelectorAll(".day")].forEach(el => el.classList.remove("selected"));
+    cell.classList.add("selected");
+    renderDayPanel();
+  });
+
+  return cell;
+}
+
+function renderCalendar() {
+  const monthName = calCursor.toLocaleString("en-US", { month: "long" });
+  calendarTitle.textContent = `${monthName} ${calCursor.getFullYear()}`;
+
+  calendarGrid.innerHTML = "";
+
+  const year = calCursor.getFullYear();
+  const month = calCursor.getMonth();
+
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
+
+  const startDow = first.getDay();     // 0=Sun
+  const daysInMonth = last.getDate();
+
+  // Previous month trailing
+  const prevLastDay = new Date(year, month, 0).getDate();
+  for (let i = 0; i < startDow; i++) {
+    const dayNum = prevLastDay - (startDow - 1 - i);
+    calendarGrid.appendChild(dayCell(new Date(year, month - 1, dayNum), true));
+  }
+
+  // Current month
+  for (let day = 1; day <= daysInMonth; day++) {
+    calendarGrid.appendChild(dayCell(new Date(year, month, day), false));
+  }
+
+  // Next month leading to fill
+  const totalCells = calendarGrid.children.length;
+  const remainder = totalCells % 7;
+  const fill = remainder === 0 ? 0 : (7 - remainder);
+  for (let i = 1; i <= fill; i++) {
+    calendarGrid.appendChild(dayCell(new Date(year, month + 1, i), true));
+  }
+
+  renderDayPanel();
+}
+
+// Calendar controls
+prevMonthBtn.addEventListener("click", () => {
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() - 1, 1);
+  renderCalendar();
+});
+nextMonthBtn.addEventListener("click", () => {
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 1);
+  renderCalendar();
+});
+todayBtn.addEventListener("click", () => {
+  const now = new Date();
+  calCursor = new Date(now.getFullYear(), now.getMonth(), 1);
+  selectedDate = new Date(now);
+  renderCalendar();
+});
+
+// -------- Rerender everything --------
+function rerender(query = "") {
+  const courses = loadCourses();
+  renderStats(courses);
+  renderChart(courses);
+  renderCourses(courses, query);
+  renderCalendar();
+}
+
+// initial
+rerender();
