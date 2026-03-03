@@ -1,300 +1,428 @@
-/**
- * DASHBOARD ONLY (Deliverable 1)
- * - No login logic
- * - No assessments module
- * - Read-only display of: courses + calendar + progression
- */
+const STORAGE_KEY = "axelle_dashboard_courses_v1";
 
-// ---------------------------
-// 1) student + courses
-// ---------------------------
-const student = {
-  name: "Student Name" // change to your name for demo
-};
+// Elements
+const courseForm = document.getElementById("courseForm");
+const coursesList = document.getElementById("coursesList");
+const searchInput = document.getElementById("search");
 
-// Term dates (progress is based on this)
-const term = {
-  name: "Winter 2026",
-  start: "2026-01-06", // YYYY-MM-DD
-  end:   "2026-04-20"
-};
+const statCourses = document.getElementById("statCourses");
+const statAvgProgress = document.getElementById("statAvgProgress");
+const statAvgGrade = document.getElementById("statAvgGrade");
+const statTerm = document.getElementById("statTerm");
 
-/**
- * Courses contain weekly meeting patterns.
- * meeting.days: array of weekday numbers 
- * type: "lecture" | "lab" | "tutorial"
- */
-const courses = [
-  {
-    id: "c1",
-    code: "SOEN 287",
-    name: "Web Programming",
-    instructor: "TBA",
-    meeting: { type: "lecture", days: [1, 3], time: "10:15–11:30" } // Mon/Wed
-  },
-  {
-    id: "c2",
-    code: "SOEN 228",
-    name: "System Hardware",
-    instructor: "TBA",
-    meeting: { type: "lab", days: [4], time: "14:45–17:15" } // Thu
-  },
-  {
-    id: "c3",
-    code: "ENGR 201",
-    name: "Ethics & Professional Practice",
-    instructor: "TBA",
-    meeting: { type: "tutorial", days: [2], time: "13:15–14:30" } // Tue
+const chart = document.getElementById("courseChart");
+const resetBtn = document.getElementById("resetBtn");
+
+// Modal
+const backdrop = document.getElementById("backdrop");
+const closeModal = document.getElementById("closeModal");
+const editForm = document.getElementById("editForm");
+
+// Calendar elements
+const prevMonthBtn = document.getElementById("prevMonthBtn");
+const nextMonthBtn = document.getElementById("nextMonthBtn");
+const todayBtn = document.getElementById("todayBtn");
+const calendarTitle = document.getElementById("calendarTitle");
+const calendarGrid = document.getElementById("calendarGrid");
+const selectedDateLabel = document.getElementById("selectedDateLabel");
+const dayItems = document.getElementById("dayItems");
+
+// Calendar state
+let calCursor = new Date();      // month being viewed
+let selectedDate = new Date();   // selected day
+
+// -------- Utils --------
+function uid() {
+  return Math.random().toString(16).slice(2) + Date.now().toString(16);
+}
+
+function clampPercent(n) {
+  const x = Number(n);
+  if (Number.isNaN(x)) return 0;
+  return Math.max(0, Math.min(100, x));
+}
+
+// small helpers to avoid HTML injection
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, s => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[s]));
+}
+function escapeAttr(str) {
+  return escapeHtml(str).replace(/"/g, "&quot;");
+}
+
+// -------- Storage --------
+function loadCourses() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
   }
-];
-
-// ---------------------------
-// 2) Elements
-// ---------------------------
-const el = {
-  studentName: document.getElementById("studentName"),
-  courseCount: document.getElementById("courseCount"),
-  termProgress: document.getElementById("termProgress"),
-  todayLabel: document.getElementById("todayLabel"),
-
-  weekdays: document.getElementById("weekdays"),
-  calGrid: document.getElementById("calGrid"),
-  calTitle: document.getElementById("calTitle"),
-  prevMonthBtn: document.getElementById("prevMonthBtn"),
-  nextMonthBtn: document.getElementById("nextMonthBtn"),
-
-  courseGrid: document.getElementById("courseGrid"),
-  logoutBtn: document.getElementById("logoutBtn")
-};
-
-// ---------------------------
-// 3) Calendar state
-// ---------------------------
-const calState = {
-  month: new Date().getMonth(),
-  year: new Date().getFullYear()
-};
-
-const WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-
-// ---------------------------
-// 4) Date helpers
-// ---------------------------
-function isoToday() {
-  return new Date().toISOString().slice(0, 10);
 }
 
-function parseISO(iso) {
-  // iso = "YYYY-MM-DD"
-  return new Date(iso + "T00:00:00");
+function saveCourses(courses) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(courses));
 }
 
-function clamp(n, min, max) {
-  return Math.max(min, Math.min(max, n));
-}
-
-function formatTodayLong() {
-  return new Date().toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric"
-  });
-}
-
-function isWithinTerm(isoDate) {
-  return isoDate >= term.start && isoDate <= term.end;
-}
-
-// ---------------------------
-// 5) Progress calculation
-// ---------------------------
-function termProgressPercent() {
-  const t0 = parseISO(term.start).getTime();
-  const t1 = parseISO(term.end).getTime();
-  const now = parseISO(isoToday()).getTime();
-
-  const pct = ((now - t0) / (t1 - t0)) * 100;
-  return Math.round(clamp(pct, 0, 100));
-}
-
-/**
- * Course progress: same as term progress (Deliverable 1).
- * Later, you can replace this with real course completion metrics.
- */
-function courseProgressPercent() {
-  return termProgressPercent();
-}
-
-// ---------------------------
-// 6) Rendering: Header + Summary
-// ---------------------------
-function renderHeaderAndSummary() {
-  el.studentName.textContent = student.name;
-  el.courseCount.textContent = String(courses.length);
-  el.termProgress.textContent = String(termProgressPercent());
-  el.todayLabel.textContent = formatTodayLong();
-}
-
-// ---------------------------
-// 7) Rendering: Courses grid
-// ---------------------------
-function renderCourses() {
-  el.courseGrid.innerHTML = "";
+// -------- Stats + Chart --------
+function computeStats(courses) {
+  const count = courses.length;
+  let sumProgress = 0;
+  let sumGrade = 0;
 
   for (const c of courses) {
-    const pct = courseProgressPercent(); // same for now
+    sumProgress += clampPercent(c.progress);
+    sumGrade += clampPercent(c.grade);
+  }
 
-    const card = document.createElement("div");
-    card.className = "course";
-    card.innerHTML = `
-      <div class="code">${escapeHtml(c.code)}</div>
-      <div class="info">${escapeHtml(c.name)} • ${escapeHtml(term.name)}</div>
-      <div class="info">Instructor: ${escapeHtml(c.instructor || "—")}</div>
-      <div class="info">${capitalize(c.meeting.type)}: ${daysText(c.meeting.days)} • ${escapeHtml(c.meeting.time)}</div>
+  const avgProgress = count ? Math.round(sumProgress / count) : null;
+  const avgGrade = count ? Math.round(sumGrade / count) : null;
 
-      <div class="progress" aria-label="Course progress">
-        <div style="width:${pct}%"></div>
-      </div>
-      <div class="pct">${pct}% of the term completed</div>
-    `;
+  const term = count ? (courses[0].term || "—") : "—";
+  return { count, avgProgress, avgGrade, term };
+}
 
-    el.courseGrid.appendChild(card);
+function renderStats(courses) {
+  const { count, avgProgress, avgGrade, term } = computeStats(courses);
+  statCourses.textContent = String(count);
+  statAvgProgress.textContent = avgProgress === null ? "—" : `${avgProgress}%`;
+  statAvgGrade.textContent = avgGrade === null ? "—" : `${avgGrade}%`;
+  statTerm.textContent = term || "—";
+}
+
+function renderChart(courses) {
+  chart.innerHTML = "";
+
+  if (!courses.length) {
+    const p = document.createElement("p");
+    p.className = "hint";
+    p.textContent = "Add at least one course to see the chart.";
+    chart.appendChild(p);
+    return;
+  }
+
+  // each bar height = avg(progress, grade)
+  for (const c of courses) {
+    const value = Math.round((clampPercent(c.progress) + clampPercent(c.grade)) / 2);
+
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    bar.style.height = `${Math.max(6, value)}%`;
+    bar.title = `${c.code}: ${value}%`;
+
+    const label = document.createElement("span");
+    label.textContent = c.code;
+    bar.appendChild(label);
+
+    chart.appendChild(bar);
   }
 }
 
-function daysText(daysArr) {
-  // ex: [1,3] => "Mon, Wed"
-  return daysArr.map(d => WEEKDAYS[d]).join(", ");
+// -------- Courses UI --------
+function courseMatches(course, q) {
+  const s = q.toLowerCase();
+  return (
+    course.code.toLowerCase().includes(s) ||
+    course.name.toLowerCase().includes(s) ||
+    course.instructor.toLowerCase().includes(s) ||
+    course.term.toLowerCase().includes(s)
+  );
 }
 
-// ---------------------------
-// 8) Rendering: Calendar
-// ---------------------------
-function renderWeekdays() {
-  el.weekdays.innerHTML = WEEKDAYS.map(d => `<div>${d}</div>`).join("");
+function renderCourses(courses, query = "") {
+  coursesList.innerHTML = "";
+
+  const filtered = query.trim()
+    ? courses.filter(c => courseMatches(c, query))
+    : courses;
+
+  if (!filtered.length) {
+    const empty = document.createElement("div");
+    empty.className = "card";
+    empty.innerHTML = `<p class="hint">No courses found. Add one using the form above.</p>`;
+    coursesList.appendChild(empty);
+    return;
+  }
+
+  for (const c of filtered) {
+    const wrap = document.createElement("div");
+    wrap.className = "course";
+
+    const progress = clampPercent(c.progress);
+    const grade = clampPercent(c.grade);
+
+    wrap.innerHTML = `
+      <div class="course-top">
+        <div class="course-title">
+          <strong>${escapeHtml(c.code)} — ${escapeHtml(c.name)}</strong>
+          <div class="course-meta">${escapeHtml(c.term)} • ${escapeHtml(c.instructor)}</div>
+
+          <div class="pills">
+            <span class="pill good">Progress: ${progress}%</span>
+            <span class="pill">Grade: ${grade}%</span>
+          </div>
+
+          <div class="progress" aria-label="Course progress bar">
+            <div style="width:${progress}%"></div>
+          </div>
+        </div>
+
+        <div class="course-actions">
+          <button class="btn" data-action="edit" data-id="${c.id}">Edit</button>
+          <button class="btn ghost" data-action="delete" data-id="${c.id}">Delete</button>
+        </div>
+      </div>
+    `;
+
+    wrap.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+
+      if (action === "delete") deleteCourse(id);
+      if (action === "edit") openEditModal(id);
+    });
+
+    coursesList.appendChild(wrap);
+  }
+}
+
+function deleteCourse(id) {
+  const courses = loadCourses();
+  const next = courses.filter(c => c.id !== id);
+  saveCourses(next);
+  rerender(searchInput.value);
+}
+
+function openEditModal(id) {
+  const courses = loadCourses();
+  const course = courses.find(c => c.id === id);
+  if (!course) return;
+
+  editForm.innerHTML = `
+    <label>Course Code
+      <input id="e_code" value="${escapeAttr(course.code)}" required />
+    </label>
+    <label>Term
+      <input id="e_term" value="${escapeAttr(course.term)}" required />
+    </label>
+    <label>Course Name
+      <input id="e_name" value="${escapeAttr(course.name)}" required />
+    </label>
+    <label>Instructor
+      <input id="e_instructor" value="${escapeAttr(course.instructor)}" required />
+    </label>
+    <div class="row">
+      <label>Progress (%)
+        <input id="e_progress" type="number" min="0" max="100" value="${escapeAttr(course.progress)}" required />
+      </label>
+      <label>Grade (%)
+        <input id="e_grade" type="number" min="0" max="100" value="${escapeAttr(course.grade)}" required />
+      </label>
+    </div>
+    <button class="btn primary" type="submit">Save Changes</button>
+  `;
+
+  editForm.onsubmit = (e) => {
+    e.preventDefault();
+
+    const updated = {
+      ...course,
+      code: document.getElementById("e_code").value.trim(),
+      term: document.getElementById("e_term").value.trim(),
+      name: document.getElementById("e_name").value.trim(),
+      instructor: document.getElementById("e_instructor").value.trim(),
+      progress: clampPercent(document.getElementById("e_progress").value),
+      grade: clampPercent(document.getElementById("e_grade").value),
+    };
+
+    const next = courses.map(c => (c.id === id ? updated : c));
+    saveCourses(next);
+    closeEditModal();
+    rerender(searchInput.value);
+  };
+
+  backdrop.classList.add("show");
+  backdrop.setAttribute("aria-hidden", "false");
+}
+
+function closeEditModal() {
+  backdrop.classList.remove("show");
+  backdrop.setAttribute("aria-hidden", "true");
+}
+
+closeModal.addEventListener("click", closeEditModal);
+backdrop.addEventListener("click", (e) => {
+  if (e.target === backdrop) closeEditModal();
+});
+
+// Add course
+courseForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const course = {
+    id: uid(),
+    code: document.getElementById("code").value.trim(),
+    term: document.getElementById("term").value.trim(),
+    name: document.getElementById("name").value.trim(),
+    instructor: document.getElementById("instructor").value.trim(),
+    progress: clampPercent(document.getElementById("progress").value),
+    grade: clampPercent(document.getElementById("grade").value),
+  };
+
+  const courses = loadCourses();
+  courses.push(course);
+  saveCourses(courses);
+
+  courseForm.reset();
+  rerender(searchInput.value);
+});
+
+// Search
+searchInput.addEventListener("input", () => {
+  rerender(searchInput.value);
+});
+
+// Reset
+resetBtn.addEventListener("click", () => {
+  localStorage.removeItem(STORAGE_KEY);
+  rerender(searchInput.value);
+});
+
+// -------- Calendar (Dashboard UI) --------
+// Demo calendar items (placeholder)
+function getDemoCalendarItems() {
+  return [
+    { date: "2026-03-10", title: "SOEN 287 — Assignment 1", note: "Demo item (connect later)" },
+    { date: "2026-03-12", title: "COMP 232 — Quiz", note: "Demo item (connect later)" },
+    { date: "2026-03-15", title: "ENGR 201 — Reflection", note: "Demo item (connect later)" },
+  ];
+}
+
+function fmtISO(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function sameDay(a, b) {
+  return a.getFullYear() === b.getFullYear()
+    && a.getMonth() === b.getMonth()
+    && a.getDate() === b.getDate();
+}
+
+function renderDayPanel() {
+  const iso = fmtISO(selectedDate);
+  selectedDateLabel.textContent = iso;
+
+  const items = getDemoCalendarItems().filter(it => it.date === iso);
+
+  dayItems.innerHTML = "";
+  if (!items.length) {
+    dayItems.innerHTML = `<p class="hint">No items for this day.</p>`;
+    return;
+  }
+
+  for (const it of items) {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `<b>${escapeHtml(it.title)}</b><div class="small">${escapeHtml(it.note)}</div>`;
+    dayItems.appendChild(div);
+  }
+}
+
+function dayCell(dateObj, isMuted) {
+  const iso = fmtISO(dateObj);
+  const itemsOnDay = getDemoCalendarItems().filter(it => it.date === iso);
+
+  const cell = document.createElement("div");
+  cell.className = "day" + (isMuted ? " muted" : "");
+  if (sameDay(dateObj, selectedDate)) cell.classList.add("selected");
+
+  cell.innerHTML = `
+    <div class="num">${dateObj.getDate()}</div>
+    <div class="dotline">
+      ${itemsOnDay.slice(0, 4).map(() => `<span class="cdot"></span>`).join("")}
+    </div>
+  `;
+
+  cell.addEventListener("click", () => {
+    selectedDate = new Date(dateObj);
+    [...calendarGrid.querySelectorAll(".day")].forEach(el => el.classList.remove("selected"));
+    cell.classList.add("selected");
+    renderDayPanel();
+  });
+
+  return cell;
 }
 
 function renderCalendar() {
-  const { month, year } = calState;
+  const monthName = calCursor.toLocaleString("en-US", { month: "long" });
+  calendarTitle.textContent = `${monthName} ${calCursor.getFullYear()}`;
+
+  calendarGrid.innerHTML = "";
+
+  const year = calCursor.getFullYear();
+  const month = calCursor.getMonth();
+
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
 
-  el.calTitle.textContent = first.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const startDow = first.getDay();     // 0=Sun
+  const daysInMonth = last.getDate();
 
-  const startDay = first.getDay();       // 0..6 weekday of the 1st
-  const daysInMonth = last.getDate();    // 28..31
-
-  // previous month info (to fill leading cells)
-  const prevLast = new Date(year, month, 0);
-  const prevDays = prevLast.getDate();
-
-  el.calGrid.innerHTML = "";
-
-  // 42 cells (6 weeks) keeps layout stable
-  for (let i = 0; i < 42; i++) {
-    const cell = document.createElement("div");
-    cell.className = "day";
-
-    let dayNum, cellMonth = month, cellYear = year, otherMonth = false;
-
-    if (i < startDay) {
-      // previous month
-      dayNum = prevDays - (startDay - 1 - i);
-      otherMonth = true;
-      cellMonth = month - 1;
-      if (cellMonth < 0) { cellMonth = 11; cellYear = year - 1; }
-    } else if (i >= startDay + daysInMonth) {
-      // next month
-      dayNum = i - (startDay + daysInMonth) + 1;
-      otherMonth = true;
-      cellMonth = month + 1;
-      if (cellMonth > 11) { cellMonth = 0; cellYear = year + 1; }
-    } else {
-      // current month
-      dayNum = i - startDay + 1;
-    }
-
-    if (otherMonth) cell.classList.add("other-month");
-
-    const iso = new Date(cellYear, cellMonth, dayNum).toISOString().slice(0, 10);
-    const weekday = new Date(cellYear, cellMonth, dayNum).getDay();
-
-    // badges: show course meetings that fall on this weekday
-    const badges = isWithinTerm(iso)
-      ? meetingsForWeekday(weekday).slice(0, 3) // show up to 3 badges
-      : [];
-
-    cell.innerHTML = `
-      <div class="num">${dayNum}</div>
-      <div class="badges">
-        ${badges.map(b => `
-          <span class="badge ${b.type}" title="${escapeHtml(b.full)}">
-            ${escapeHtml(b.short)}
-          </span>
-        `).join("")}
-      </div>
-    `;
-
-    el.calGrid.appendChild(cell);
+  // Previous month trailing
+  const prevLastDay = new Date(year, month, 0).getDate();
+  for (let i = 0; i < startDow; i++) {
+    const dayNum = prevLastDay - (startDow - 1 - i);
+    calendarGrid.appendChild(dayCell(new Date(year, month - 1, dayNum), true));
   }
+
+  // Current month
+  for (let day = 1; day <= daysInMonth; day++) {
+    calendarGrid.appendChild(dayCell(new Date(year, month, day), false));
+  }
+
+  // Next month leading to fill
+  const totalCells = calendarGrid.children.length;
+  const remainder = totalCells % 7;
+  const fill = remainder === 0 ? 0 : (7 - remainder);
+  for (let i = 1; i <= fill; i++) {
+    calendarGrid.appendChild(dayCell(new Date(year, month + 1, i), true));
+  }
+
+  renderDayPanel();
 }
 
-function meetingsForWeekday(weekday) {
-  // returns badges for courses meeting on that weekday
-  const results = [];
-  for (const c of courses) {
-    if (c.meeting.days.includes(weekday)) {
-      results.push({
-        type: c.meeting.type,              // lecture/lab/tutorial (used in CSS)
-        short: `${c.code}`,                // visible
-        full: `${c.code} • ${c.meeting.type} • ${c.meeting.time}` // tooltip
-      });
-    }
-  }
-  return results;
-}
-
-// ---------------------------
-// 9) Events
-// ---------------------------
-el.prevMonthBtn.addEventListener("click", () => {
-  calState.month--;
-  if (calState.month < 0) { calState.month = 11; calState.year--; }
+// Calendar controls
+prevMonthBtn.addEventListener("click", () => {
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() - 1, 1);
+  renderCalendar();
+});
+nextMonthBtn.addEventListener("click", () => {
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 1);
+  renderCalendar();
+});
+todayBtn.addEventListener("click", () => {
+  const now = new Date();
+  calCursor = new Date(now.getFullYear(), now.getMonth(), 1);
+  selectedDate = new Date(now);
   renderCalendar();
 });
 
-el.nextMonthBtn.addEventListener("click", () => {
-  calState.month++;
-  if (calState.month > 11) { calState.month = 0; calState.year++; }
+// -------- Rerender everything --------
+function rerender(query = "") {
+  const courses = loadCourses();
+  renderStats(courses);
+  renderChart(courses);
+  renderCourses(courses, query);
   renderCalendar();
-});
-
-// Demo logout (since login not your part)
-el.logoutBtn.addEventListener("click", (e) => {
-  e.preventDefault();
-  alert("Logout is handled by the login/auth module (not part of dashboard).");
-});
-
-// ---------------------------
-// 10) Utilities
-// ---------------------------
-function escapeHtml(str) {
-  return String(str ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }
 
-function capitalize(s) {
-  return String(s).charAt(0).toUpperCase() + String(s).slice(1);
-}
-
-// ---------------------------
-// 11) Init
-// ---------------------------
-renderWeekdays();
-renderHeaderAndSummary();
-renderCourses();
-renderCalendar();
+// initial
+rerender();
