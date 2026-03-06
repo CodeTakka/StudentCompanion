@@ -4,12 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Student Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css" />
+  <link rel="icon" type="image/png" href="images/logo.png">
+  <link rel="stylesheet" href="css/dashboard-styles.css" />
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <div class="logo">SCC</div>
+      <img src="images/logo.png" width="50">
       <div>
         <h1>Student Dashboard</h1>
         <p class="muted">Courses • Progress • Calendar</p>
@@ -53,9 +54,7 @@
 
         <h3 class="subhead">Chart (Course Grade / Progress)</h3>
         <div class="chart" id="courseChart" aria-label="Course chart"></div>
-        <p class="hint">
-         
-        </p>
+        <p class="hint"></p>
       </div>
 
       <div class="card">
@@ -64,6 +63,7 @@
         </div>
         <div id="courseSnapshot"></div>
         <p class="hint"></p>
+        <a class="btn primary" href="CourseInfo.html">View Course</a>
       </div>
     </section>
 
@@ -101,6 +101,6 @@
     </section>
   </main>
 
-  <script src="dashboard.js"></script>
+  <script src="js/dashboard.js"></script>
 </body>
 </html>
