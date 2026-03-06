@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Student Dashboard</title>
-    <link rel="icon" type="image/png" href="images/logo.png">
-    <link rel="stylesheet" href="css/dashboard-styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
 </head>
 <body>
   <header class="topbar">
@@ -17,20 +16,9 @@
       </div>
     </div>
 
-    <!-- Navigation -->
     <nav class="student-nav">
-      <a href="dashboard.html">Dashboard</a>
-      <a href="assessments-per-course.html">Assessments</a>
+      <a class="nav-btn primary" href="#" id="logoutBtn">Logout</a>
     </nav>
-
-    <!-- User Actions -->
-    <div class="user">
-      <div class="user-text">
-        <p class="small">Logged in as</p>
-        <p class="name" id="studentName">Student</p>
-      </div>
-      <a class="btn ghost" href="home-page.html" id="logoutBtn">Logout</a>
-    </div>
   </header>
 
   <main class="container">
@@ -39,16 +27,16 @@
       <div class="card span-2">
         <div class="card-head">
           <h2>Visual Summary</h2>
-          <button class="btn ghost" id="resetBtn" title="Reset saved courses">Reset</button>
+          <span class="tag">Read-only (Student View)</span>
         </div>
 
         <div class="stats">
           <div class="stat">
             <div class="stat-label">Courses</div>
-            <div class="stat-value" id="statCourses">0</div>
+            <div class="stat-value" id="statCourses">—</div>
           </div>
           <div class="stat">
-            <div class="stat-label">Avg Progress</div>
+            <div class="stat-label">Progress</div>
             <div class="stat-value" id="statAvgProgress">—</div>
           </div>
           <div class="stat">
@@ -63,92 +51,24 @@
 
         <div class="divider"></div>
 
-        <h3 class="subhead">Chart (Progress / Grade per course)</h3>
+        <h3 class="subhead">Chart (Course Grade / Progress)</h3>
         <div class="chart" id="courseChart" aria-label="Course chart"></div>
         <p class="hint">
-          Deliverable 1: Progress% and Grade% are stored by the dashboard for visuals.
-          Deliverable 2: can be fed from real data later.
+         
         </p>
       </div>
 
-      <!-- ADD COURSE -->
       <div class="card">
         <div class="card-head">
-          <h2>Add Course</h2>
+          <h2>Course Snapshot</h2>
         </div>
-
-        <form id="courseForm" class="form">
-          <div class="row">
-            <label>
-              Course Code
-              <input id="code" type="text" placeholder="SOEN 287" required />
-            </label>
-            <label>
-              Term
-              <input id="term" type="text" placeholder="Winter 2026" required />
-            </label>
-          </div>
-
-          <label>
-            Course Name
-            <input id="name" type="text" placeholder="Web Programming" required />
-          </label>
-
-          <label>
-            Instructor
-            <input id="instructor" type="text" placeholder="Prof. Name" required />
-          </label>
-
-          <div class="row">
-            <label>
-              Progress (%)
-              <input id="progress" type="number" min="0" max="100" placeholder="0 - 100" required />
-            </label>
-            <label>
-              Grade (%)
-              <input id="grade" type="number" min="0" max="100" placeholder="0 - 100" required />
-            </label>
-          </div>
-
-          <button class="btn primary" type="submit">Add Course</button>
-          <p class="hint">Deliverable 1 demo: courses saved to localStorage (frontend only).</p>
-        </form>
-      </div>
-    </section>
-
-    <!-- COURSES -->
-    <section class="section">
-      <div class="section-head">
-        <h2>Your Courses</h2>
-        <input class="input" id="search" placeholder="Search by code, name, instructor, term..." />
-      </div>
-
-      <div id="coursesList" class="courses"></div>
-    </section>
-
-    <!-- UPCOMING ASSESSMENTS (PLACEHOLDER ONLY) -->
-    <section class="section">
-      <div class="section-head">
-        <h2>Upcoming Assessments (All Courses)</h2>
-        <span class="tag">Placeholder (connected later)</span>
-      </div>
-
-      <div class="card">
-        <p class="hint">
-          Deliverable 1: this section is display-only placeholder.
-          Deliverable 2: real items will come from the assessments module.
-        </p>
-
-        <ul class="placeholder" id="upcomingPlaceholder">
-          <li><b>SOEN 287</b> — Assignment 1 — Due: 2026-03-10</li>
-          <li><b>COMP 232</b> — Quiz — Due: 2026-03-12</li>
-          <li><b>ENGR 201</b> — Reflection — Due: 2026-03-15</li>
-        </ul>
+        <div id="courseSnapshot"></div>
+        <p class="hint"></p>
       </div>
     </section>
 
     <!-- CALENDAR -->
-    <section class="section">
+    <section class="section" id="calendarSection">
       <div class="section-head">
         <h2>Calendar</h2>
         <div class="calendar-controls">
@@ -166,7 +86,7 @@
           </div>
           <div class="calendar" id="calendarGrid"></div>
           <p class="hint">
-            Deliverable 1: calendar shows demo dots/items. Deliverable 2: connect assessment due dates here.
+            The calendar highlights assessment due dates for SOEN 287. Click a day to view items.
           </p>
         </div>
 
@@ -175,22 +95,11 @@
             <h3>Items on <span id="selectedDateLabel">—</span></h3>
           </div>
           <div id="dayItems" class="day-items"></div>
-          <p class="hint">Click a day to view its items.</p>
+          <p class="hint">Click a day to view its due items.</p>
         </div>
       </div>
     </section>
   </main>
-
-  <!-- EDIT MODAL (COURSES ONLY) -->
-  <div class="modal-backdrop" id="backdrop" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal-head">
-        <h3 id="modalTitle">Edit Course</h3>
-        <button class="icon-btn" id="closeModal" aria-label="Close">✕</button>
-      </div>
-      <form id="editForm" class="form"></form>
-    </div>
-  </div>
 
   <script src="dashboard.js"></script>
 </body>
