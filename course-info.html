@@ -4,9 +4,25 @@
     <meta charset="UTF-8" />
     <title>Course Info</title>
     <link rel="icon" type="image/png" href="images/logo.png" />
+    <link rel="stylesheet" href="css/general-student.css" />
     <link rel="stylesheet" href="css/course-info-styles.css" />
   </head>
   <body>
+    <header class="topbar">
+      <div class="brand">
+        <img src="images/logo.png" width="50" />
+        <div>
+          <h1>Student Dashboard</h1>
+          <p class="muted">Courses • Progress • Calendar</p>
+        </div>
+      </div>
+
+      <nav class="student-nav">
+        <a class="dashboard" href="dashboard.html">Dashboard</a>
+        <a href="#" id="logoutBtn">Logout</a>
+      </nav>
+    </header>
+
     <div class="page">
       <h2>Welcome to : SOEN-287</h2>
       <h3>Teacher name : Abdelghani Benharref</h3>
@@ -45,5 +61,6 @@
         </p>
       </div>
     </div>
+    <script src="js/navigation.js"></script>
   </body>
 </html>

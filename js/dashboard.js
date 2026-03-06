@@ -306,7 +306,6 @@ todayBtn.addEventListener("click", () => {
 // Logout
 logoutBtn.addEventListener("click", (e) => {
   e.preventDefault();
-  // Change to your real login page file name:
   window.location.href = "login.html";
 });
 

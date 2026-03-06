@@ -4,10 +4,26 @@
     <meta charset="UTF-8" />
     <title>Grades</title>
     <link rel="icon" type="image/png" href="images/logo.png" />
+    <link rel="stylesheet" href="css/general-student.css" />
     <link rel="stylesheet" href="css/grades-styles.css" />
   </head>
 
   <body>
+    <header class="topbar">
+      <div class="brand">
+        <img src="images/logo.png" width="50" />
+        <div>
+          <h1>Student Dashboard</h1>
+          <p class="muted">Courses • Progress • Calendar</p>
+        </div>
+      </div>
+
+      <nav class="student-nav">
+        <a class="dashboard" href="dashboard.html">Dashboard</a>
+        <a href="#" id="logoutBtn">Logout</a>
+      </nav>
+    </header>
+
     <div class="page">
       <h2>Grades Posted for : SOEN-287</h2>
 
@@ -59,5 +75,6 @@
         </div>
       </div>
     </div>
+    <script src="js/navigation.js"></script>
   </body>
 </html>
