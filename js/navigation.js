@@ -3,5 +3,5 @@ const logoutBtn = document.getElementById("logoutBtn")
 // Logout
 logoutBtn.addEventListener("click", (e) => {
   e.preventDefault();
-  window.location.href = "login.html";
+  window.location.href = "home-page.html";
 });
