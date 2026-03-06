@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GradesAdmin</title>
+
+  <style>
+    body{
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f6f8;
+    }
+
+    .page{
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    h2{
+      margin: 0 0 14px;
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+
+    .panel{
+      background: #ffffff;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 18px;
+      width: 100%;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.06);
+      box-sizing: border-box;
+    }
+
+    table{
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th{
+      background: #808080;
+      color: white;
+      padding: 14px;
+      text-align: left;
+      font-weight: 700;
+      border-bottom: 3px solid #8b1d1d;
+    }
+
+    tbody td{
+      padding: 14px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    tbody tr:hover{
+      background: #fafafa;
+    }
+
+    .course-average{
+      margin-top: 16px;
+      padding: 14px 16px;
+      border: 1px solid #eee;
+      background: #fafafa;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .avg-label{
+      font-weight: 700;
+      color: #555;
+    }
+
+    .avg-number{
+      font-weight: 800;
+      font-size: 20px;
+      color: #8b1d1d;
+    }
+
+    .table-actions{
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .btn{
+      display: inline-block;
+      text-decoration: none;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      border: 1px solid #ddd;
+      background: #fff;
+      color: #222;
+      cursor: pointer;
+    }
+
+    .btn.primary{
+      background: #8b1d1d;
+      border-color: #8b1d1d;
+      color: #fff;
+    }
+
+    .btn.small{
+      padding: 7px 10px;
+      font-size: 13px;
+      border-radius: 7px;
+    }
+
+    .btn:hover{ filter: brightness(0.96); }
+  </style>
+</head>
+
+<body>
+<div class="page">
+  <h2>Grades Posted for : SOEN-287</h2>
+
+  <div class="panel">
+
+    <div class="table-actions">
+      <a class="btn primary" href="AddGrade.html">+ Add Grade</a>
+    </div>
+
+    <table>
+      <thead>
+      <tr>
+        <th>Assessment Object</th>
+        <th>Grade</th>
+        <th>Range</th>
+        <th>Weight</th>
+        <th>Actions</th>
+      </tr>
+      </thead>
+
+      <tbody>
+      <tr>
+        <td>Quiz 1</td>
+        <td>87</td>
+        <td>0-100</td>
+        <td>5%</td>
+        <td><a class="btn small" href="#">Edit</a></td>
+      </tr>
+
+      <tr>
+        <td>Midterm 1</td>
+        <td>76</td>
+        <td>0-100</td>
+        <td>25%</td>
+        <td><a class="btn small" href="#">Edit</a></td>
+      </tr>
+
+      <tr>
+        <td>Quiz 2</td>
+        <td>Not Graded</td>
+        <td>0-100</td>
+        <td>5%</td>
+        <td><a class="btn small" href="#">Edit</a></td>
+      </tr>
+
+      <tr>
+        <td>Final Exam</td>
+        <td>Not Graded</td>
+        <td>0-100</td>
+        <td>65%</td>
+        <td><a class="btn small" href="#">Edit</a></td>
+      </tr>
+      </tbody>
+    </table>
+
+    <div class="course-average">
+      <span class="avg-label">Course average</span>
+      <span class="avg-number">77.83%</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>
