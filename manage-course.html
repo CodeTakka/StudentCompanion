@@ -1,85 +1,96 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Create Course</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/png" href="images/logo.png">
-    <link rel="stylesheet" href="css/admin-styles.css">
-</head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/png" href="images/logo.png" />
+    <link rel="stylesheet" href="css/admin-styles.css" />
+  </head>
 
-<body>
-
-<header class="topbar">
-
-    <div class="header-left">
-        <img src="images/logo.png" width="50" >
+  <body>
+    <header class="topbar">
+      <div class="header-left">
+        <img src="images/logo.png" width="50" />
         <div class="header-text">
-            <h1>Smart Course Companion</h1>
-            <span>Admin Panel</span>
+          <h1>Smart Course Companion</h1>
+          <span>Admin Panel</span>
         </div>
-    </div>
+      </div>
 
-    <nav class="admin-nav">
+      <nav class="admin-nav">
         <a href="manage-course.html" class="active">Manage Courses</a>
         <a href="grades-admin.html">Manage Grades</a>
         <a href="assessments-admin.html">Manage Assessments</a>
         <a href="view-statistics.html">View Statistics</a>
-    </nav>
+      </nav>
 
-    <div class="header-right">
+      <div class="header-right">
         <a href="home-page.html" class="logout-btn">Logout</a>
-    </div>
-
-</header>
+      </div>
+    </header>
 
     <h1>Admin Dashboard - Create Course</h1>
-    
+
     <!-- novalidate so the browser doesn't automatically check constraints -->
     <form id="createCourseForm" novalidate>
-        <label>
-            Course Code (required):
-            <input type="text" name="code" required placeholder="SOEN287">
-        </label>
+      <label>
+        Course Code (required):
+        <input type="text" name="code" required placeholder="SOEN287" />
+      </label>
 
-        <label>
-            Course Name (required):
-            <input type="text" name="name" required placeholder="Web Programming">
-        </label>
+      <label>
+        Course Name (required):
+        <input type="text" name="name" required placeholder="Web Programming" />
+      </label>
 
-        <label>
-            Instructor Name (required):
-            <input type="text" name="instructor" required placeholder="Dr. Abdelghani">
-        </label>
+      <label>
+        Instructor Name (required):
+        <input
+          type="text"
+          name="instructor"
+          required
+          placeholder="Dr. Abdelghani"
+        />
+      </label>
 
-        <label>
-            Term/Season:
-            <select name="termSeason" required>
-                <option value="">Select season</option>
-                <option value="Fall">Fall</option>
-                <option value="Winter">Winter</option>
-                <option value="Summer">Summer</option>
-            </select>
-        </label>
+      <label>
+        Term/Season:
+        <select name="termSeason" required>
+          <option value="">Select season</option>
+          <option value="Fall">Fall</option>
+          <option value="Winter">Winter</option>
+          <option value="Summer">Summer</option>
+        </select>
+      </label>
 
-        <label>
-            Year:
-            <input type="number" name="termYear" required placeholder="2026" min="1900" max="2100">
-        </label>
+      <label>
+        Year:
+        <input
+          type="number"
+          name="termYear"
+          required
+          placeholder="2026"
+          min="1900"
+          max="2100"
+        />
+      </label>
 
-        <label>
-            Course Description (optional):
-            <textarea name="description" placeholder="This course covers..."></textarea>
-        </label>
+      <label>
+        Course Description (optional):
+        <textarea
+          name="description"
+          placeholder="This course covers..."
+        ></textarea>
+      </label>
 
-        <label>
-            Enable Course:
-            <input type="checkbox" name="enabled" checked>
-        </label>
+      <label>
+        Enable Course:
+        <input type="checkbox" name="enabled" checked />
+      </label>
 
-        <button type="submit" id="submitCourseButton">Create Course</button>
-        <button type="button" id="sampleCourse">Sample Course</button>
+      <button type="submit" id="submitCourseButton">Create Course</button>
+      <button type="button" id="sampleCourse">Sample Course</button>
     </form>
 
     <div id="message"></div>
@@ -90,5 +101,5 @@
     <script src="js/course.js"></script>
     <script src="js/assessment.js"></script>
     <script src="js/manage-course.js"></script>
-</body>
+  </body>
 </html>

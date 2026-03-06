@@ -1,214 +1,217 @@
-document.addEventListener("DOMContentLoaded", function() {
-    const form = document.getElementById("createCourseForm");
-    const messageDiv = document.getElementById("message");
-    const submitButton = document.getElementById("submitCourseButton");
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("createCourseForm");
+  const messageDiv = document.getElementById("message");
+  const submitButton = document.getElementById("submitCourseButton");
 
-    document.getElementById("sampleCourse").addEventListener("click", function() {
-        createSampleCourse();
-        displayCourses();  
+  document
+    .getElementById("sampleCourse")
+    .addEventListener("click", function () {
+      createSampleCourse();
+      displayCourses();
     });
 
-    let courses = [];
-    let editIndex = null; // Index of courses (e.g., The first course created has an index of 0)
+  let courses = [];
+  let editIndex = null; // Index of courses (e.g., The first course created has an index of 0)
 
-    const requiredFields = [
-        { name: "code", label: "Course Code" },
-        { name: "name", label: "Course Name" },
-        { name: "instructor", label: "Instructor Name" },
-        { name: "termSeason", label: "Term/Season" },
-        { name: "termYear", label: "Year" }
-    ];
+  const requiredFields = [
+    { name: "code", label: "Course Code" },
+    { name: "name", label: "Course Name" },
+    { name: "instructor", label: "Instructor Name" },
+    { name: "termSeason", label: "Term/Season" },
+    { name: "termYear", label: "Year" },
+  ];
 
-    function validateForm() {
-        let isValid = true;
-        const errors = []; // collect all error messages
+  function validateForm() {
+    let isValid = true;
+    const errors = []; // collect all error messages
 
-        // Clear previous highlights
-        const inputs = form.querySelectorAll("input, select, textarea");
-        inputs.forEach(input => input.classList.remove("error-field"));
+    // Clear previous highlights
+    const inputs = form.querySelectorAll("input, select, textarea");
+    inputs.forEach((input) => input.classList.remove("error-field"));
 
-        requiredFields.forEach(field => {
-            const input = form.querySelector("[name=" + field.name + "]");
-            if (!input) {
-                console.warn("Field " + field.name + " not found");
-                return;
-            }
+    requiredFields.forEach((field) => {
+      const input = form.querySelector("[name=" + field.name + "]");
+      if (!input) {
+        console.warn("Field " + field.name + " not found");
+        return;
+      }
 
-            // Check if empty
-            if (!input.value.trim()) {
-                input.classList.add("error-field");
-                isValid = false;
-                errors.push("Please fill " + field.label);
-            }
+      // Check if empty
+      if (!input.value.trim()) {
+        input.classList.add("error-field");
+        isValid = false;
+        errors.push("Please fill " + field.label);
+      }
 
-            // Extra check for termYear
-            if (field.name === "termYear") {
-                const year = Number(input.value);
-                if (isNaN(year) || year < 1900 || year > 2100) {
-                    input.classList.add("error-field");
-                    isValid = false;
-                    errors.push("Year must be a number between 1900 and 2100");
-                }
-            }
-        });
-
-        if (!isValid) {
-            messageDiv.className = "message error";
-            // Joins errors with line breaks for readability
-            messageDiv.innerHTML = errors.join("<br>");
+      // Extra check for termYear
+      if (field.name === "termYear") {
+        const year = Number(input.value);
+        if (isNaN(year) || year < 1900 || year > 2100) {
+          input.classList.add("error-field");
+          isValid = false;
+          errors.push("Year must be a number between 1900 and 2100");
         }
+      }
+    });
 
-        return isValid;
+    if (!isValid) {
+      messageDiv.className = "message error";
+      // Joins errors with line breaks for readability
+      messageDiv.innerHTML = errors.join("<br>");
     }
 
-    form.addEventListener("submit", function(e) {
-        e.preventDefault();
+    return isValid;
+  }
 
-        // Stops the submit event listener if the form isn't valid
-        if (!validateForm()) return;
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
 
-        const code = form.code.value.trim();
-        const courseName = form.name.value.trim();
-        const instructor = form.instructor.value.trim();
-        const termSeason = form.termSeason.value;
-        const termYear = form.termYear.value;
-        const description = form.description.value.trim();
-        const enabled = form.enabled.checked;
+    // Stops the submit event listener if the form isn't valid
+    if (!validateForm()) return;
 
-        const term = termSeason + " " + termYear;
+    const code = form.code.value.trim();
+    const courseName = form.name.value.trim();
+    const instructor = form.instructor.value.trim();
+    const termSeason = form.termSeason.value;
+    const termYear = form.termYear.value;
+    const description = form.description.value.trim();
+    const enabled = form.enabled.checked;
 
-        messageDiv.className = "message success";
+    const term = termSeason + " " + termYear;
 
-        /* If editIndex is null, that means the course information
+    messageDiv.className = "message success";
+
+    /* If editIndex is null, that means the course information
         was null, so that would mean a new course is being created */
-        if (editIndex !== null) {
+    if (editIndex !== null) {
+      const course = courses[editIndex];
 
-            const course = courses[editIndex];
+      /* course is constant, so its size is not changeable
+               but the elements inside of it are changeable */
+      course.code = code;
+      course.name = courseName;
+      course.instructor = instructor;
+      course.term = term;
+      course.description = description;
+      course.enabled = enabled;
 
-            /* course is constant, so its size is not changeable
-               but the elements inside of it are changeable */ 
-            course.code = code;
-            course.name = courseName;
-            course.instructor = instructor;
-            course.term = term;
-            course.description = description;
-            course.enabled = enabled;
+      messageDiv.textContent = "Course updated successfully!";
+      submitButton.textContent = "Create Course";
+      editIndex = null;
+    } else {
+      const newCourse = new Course(
+        code,
+        courseName,
+        instructor,
+        term,
+        description,
+        enabled,
+        50, // hardcoded progress of 50%, will be changed in deliverable 2
+      );
 
-            messageDiv.textContent = "Course updated successfully!";
-            submitButton.textContent = "Create Course";
-            editIndex = null;
+      courses.push(newCourse);
 
-        }
-        
-        else {
-
-            const newCourse = new Course(
-                code,
-                courseName,
-                instructor,
-                term,
-                description,
-                enabled,
-                50 // hardcoded progress of 50%, will be changed in deliverable 2
-            );
-
-            courses.push(newCourse);
-
-            messageDiv.textContent = "Course created successfully!";
-        }
-
-        displayCourses();
-        form.reset();
-    });
-
-    function displayCourses() {
-        const list = document.getElementById("courseList");
-        list.innerHTML = "";
-
-        for (let i = 0; i < courses.length; i++) {
-            const course = courses[i];
-
-            list.innerHTML +=
-                // If course isn't enabled, add the disabled class to it 
-                "<div class='course-card" + (!course.enabled ? " disabled" : "") + "'>" +
-                    "<div class='course-title'>" +
-                        course.code + " - " + course.name +
-                    "</div>" +
-                    "<div>" +
-                        course.instructor + " | " + course.term +
-                    "</div>" +
-                    "<div>" + 
-                    course.description + 
-                    "</div>" +
-                    "<div class='course-actions'>" +
-                        "<button onclick='editCourse(" + i + ")'>Edit</button>" +
-                        "<button onclick='deleteCourse(" + i + ")'>Delete</button>" +
-                    "</div>" +
-                "</div>";
-        }
+      messageDiv.textContent = "Course created successfully!";
     }
 
-    function createSampleCourse() {
-        const sampleTerm = {
-            season: 'Winter',
-            year: '2026'
-        };
-        
-        const sampleCourse = new Course(
-            'COMP249',
-            'Object-Oriented Programming II',
-            'Dr. Dargham',
-            sampleTerm.season + ' ' + sampleTerm.year, 
-            'Intermediate to advanced programming topics like inheritance' +
-            ', polymorphism, exception handling, I/O, and more.',
-            true
-        );
-        
-        courses.push(sampleCourse);
-        sampleCourse.addAssessment(
-            new Assessment("Quiz 1", "Quiz", 0.1, new Date(2026, 1, 25)),
-            new Assessment("Assignment 1", "Assignment", 0.15, new Date(2026, 2, 20)),
-            new Assessment("Midterms", "Exam", 0.25, new Date(2026, 3, 10)),
-            new Assessment("Finals", "Exam", 0.5, new Date(2026, 4, 21))
-        )
-        
-        messageDiv.className = "message success";
-        messageDiv.textContent = 'Course created successfully';
-    
+    displayCourses();
+    form.reset();
+  });
+
+  function displayCourses() {
+    const list = document.getElementById("courseList");
+    list.innerHTML = "";
+
+    for (let i = 0; i < courses.length; i++) {
+      const course = courses[i];
+
+      list.innerHTML +=
+        // If course isn't enabled, add the disabled class to it
+        "<div class='course-card" +
+        (!course.enabled ? " disabled" : "") +
+        "'>" +
+        "<div class='course-title'>" +
+        course.code +
+        " - " +
+        course.name +
+        "</div>" +
+        "<div>" +
+        course.instructor +
+        " | " +
+        course.term +
+        "</div>" +
+        "<div>" +
+        course.description +
+        "</div>" +
+        "<div class='course-actions'>" +
+        "<button onclick='editCourse(" +
+        i +
+        ")'>Edit</button>" +
+        "<button onclick='deleteCourse(" +
+        i +
+        ")'>Delete</button>" +
+        "</div>" +
+        "</div>";
     }
+  }
 
-    window.editCourse = function(index) {
-        submitButton.textContent = "Update Course";
-
-        const course = courses[index];
-
-        form.code.value = course.code;
-        form.name.value = course.name;
-        form.instructor.value = course.instructor;
-
-        const termParts = course.term.split(" ");
-        form.termSeason.value = termParts[0];
-        form.termYear.value = termParts[1];
-
-        form.description.value = course.description;
-        form.enabled.checked = course.enabled;
-
-        editIndex = index;
-
-        messageDiv.className = "message";
-        messageDiv.textContent = "Editing course...";
-        
+  function createSampleCourse() {
+    const sampleTerm = {
+      season: "Winter",
+      year: "2026",
     };
 
-    window.deleteCourse = function(index) {
-        submitButton.textContent = "Create Course";
+    const sampleCourse = new Course(
+      "COMP249",
+      "Object-Oriented Programming II",
+      "Dr. Dargham",
+      sampleTerm.season + " " + sampleTerm.year,
+      "Intermediate to advanced programming topics like inheritance" +
+        ", polymorphism, exception handling, I/O, and more.",
+      true,
+    );
 
-        courses.splice(index, 1);
-        displayCourses();
+    courses.push(sampleCourse);
+    sampleCourse.addAssessment(
+      new Assessment("Quiz 1", "Quiz", 0.1, new Date(2026, 1, 25)),
+      new Assessment("Assignment 1", "Assignment", 0.15, new Date(2026, 2, 20)),
+      new Assessment("Midterms", "Exam", 0.25, new Date(2026, 3, 10)),
+      new Assessment("Finals", "Exam", 0.5, new Date(2026, 4, 21)),
+    );
 
-        messageDiv.className = "message success";
-        messageDiv.textContent = "Course deleted successfully.";
-    };
+    messageDiv.className = "message success";
+    messageDiv.textContent = "Course created successfully";
+  }
 
+  window.editCourse = function (index) {
+    submitButton.textContent = "Update Course";
 
+    const course = courses[index];
+
+    form.code.value = course.code;
+    form.name.value = course.name;
+    form.instructor.value = course.instructor;
+
+    const termParts = course.term.split(" ");
+    form.termSeason.value = termParts[0];
+    form.termYear.value = termParts[1];
+
+    form.description.value = course.description;
+    form.enabled.checked = course.enabled;
+
+    editIndex = index;
+
+    messageDiv.className = "message";
+    messageDiv.textContent = "Editing course...";
+  };
+
+  window.deleteCourse = function (index) {
+    submitButton.textContent = "Create Course";
+
+    courses.splice(index, 1);
+    displayCourses();
+
+    messageDiv.className = "message success";
+    messageDiv.textContent = "Course deleted successfully.";
+  };
 });

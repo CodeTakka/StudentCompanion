@@ -1,13 +1,11 @@
 const CURRENT_TERM = "Winter 2026";
 
-
 const COURSE = {
   code: "SOEN 287",
   name: "Web Programming",
   instructor: "Professor",
   term: CURRENT_TERM,
 };
-
 
 const ASSESSMENTS = [
   {
@@ -69,9 +67,17 @@ let selectedDate = new Date();
 
 // -------- Utils --------
 function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, s => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[s]));
+  return String(str).replace(
+    /[&<>"']/g,
+    (s) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[s],
+  );
 }
 
 function clampPercent(n) {
@@ -88,18 +94,26 @@ function fmtISO(d) {
 }
 
 function sameDay(a, b) {
-  return a.getFullYear() === b.getFullYear()
-    && a.getMonth() === b.getMonth()
-    && a.getDate() === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 
 // -------- Progress + Avg Grade logic --------
 // Progress = sum(weights of completed) / sum(weights of all listed) * 100
 // Avg Grade = weighted average over completed only (normalized by completed weight)
 function computeCourseProgressAndAvg() {
-  const totalWeight = ASSESSMENTS.reduce((s, a) => s + clampPercent(a.weightPercent), 0);
-  const completed = ASSESSMENTS.filter(a => a.completed);
-  const completedWeight = completed.reduce((s, a) => s + clampPercent(a.weightPercent), 0);
+  const totalWeight = ASSESSMENTS.reduce(
+    (s, a) => s + clampPercent(a.weightPercent),
+    0,
+  );
+  const completed = ASSESSMENTS.filter((a) => a.completed);
+  const completedWeight = completed.reduce(
+    (s, a) => s + clampPercent(a.weightPercent),
+    0,
+  );
 
   const progress = totalWeight
     ? Math.round((completedWeight / totalWeight) * 100)
@@ -175,7 +189,7 @@ function renderSnapshotAndStats() {
 
 // -------- Calendar items (due dates) --------
 function getCalendarItems() {
-  return ASSESSMENTS.map(a => ({
+  return ASSESSMENTS.map((a) => ({
     date: a.due,
     title: `${COURSE.code} — ${a.assessment}`,
     note: `${a.type} • Weight ${a.weightPercent}% • ${a.completed ? "Completed" : "Pending"}`,
@@ -186,7 +200,7 @@ function renderDayPanel() {
   const iso = fmtISO(selectedDate);
   selectedDateLabel.textContent = iso;
 
-  const items = getCalendarItems().filter(it => it.date === iso);
+  const items = getCalendarItems().filter((it) => it.date === iso);
 
   dayItems.innerHTML = "";
   if (!items.length) {
@@ -207,13 +221,16 @@ function renderDayPanel() {
 
 function dayCell(dateObj, isMuted) {
   const iso = fmtISO(dateObj);
-  const itemsOnDay = getCalendarItems().filter(it => it.date === iso);
+  const itemsOnDay = getCalendarItems().filter((it) => it.date === iso);
 
   const cell = document.createElement("div");
   cell.className = "day" + (isMuted ? " muted" : "");
   if (sameDay(dateObj, selectedDate)) cell.classList.add("selected");
 
-  const dots = itemsOnDay.slice(0, 4).map(() => `<span class="cdot"></span>`).join("");
+  const dots = itemsOnDay
+    .slice(0, 4)
+    .map(() => `<span class="cdot"></span>`)
+    .join("");
 
   cell.innerHTML = `
     <div class="num">${dateObj.getDate()}</div>
@@ -222,7 +239,9 @@ function dayCell(dateObj, isMuted) {
 
   cell.addEventListener("click", () => {
     selectedDate = new Date(dateObj);
-    [...calendarGrid.querySelectorAll(".day")].forEach(el => el.classList.remove("selected"));
+    [...calendarGrid.querySelectorAll(".day")].forEach((el) =>
+      el.classList.remove("selected"),
+    );
     cell.classList.add("selected");
     renderDayPanel();
   });
@@ -260,7 +279,7 @@ function renderCalendar() {
   // Next month fill
   const totalCells = calendarGrid.children.length;
   const remainder = totalCells % 7;
-  const fill = remainder === 0 ? 0 : (7 - remainder);
+  const fill = remainder === 0 ? 0 : 7 - remainder;
   for (let i = 1; i <= fill; i++) {
     calendarGrid.appendChild(dayCell(new Date(year, month + 1, i), true));
   }
@@ -296,8 +315,8 @@ function rerenderAll() {
   renderSnapshotAndStats();
 
   // Start calendar on Feb 2026 so due dates are visible immediately
-  calCursor = new Date(2026, 1, 1);        // February 2026
-  selectedDate = new Date(2026, 1, 12);    // Feb 12, 2026
+  calCursor = new Date(2026, 1, 1); // February 2026
+  selectedDate = new Date(2026, 1, 12); // Feb 12, 2026
   renderCalendar();
 }
 

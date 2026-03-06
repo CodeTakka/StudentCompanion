@@ -1,96 +1,93 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Grades Admin</title>
-  <link rel="icon" type="image/png" href="images/logo.png">
-  <link rel="stylesheet" href="css/grades-admin-styles.css">
-</head>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Grades Admin</title>
+    <link rel="icon" type="image/png" href="images/logo.png" />
+    <link rel="stylesheet" href="css/grades-admin-styles.css" />
+  </head>
 
-<body>
-  <header class="topbar">
-
-    <div class="header-left">
-        <img src="images/logo.png" width="50" >
+  <body>
+    <header class="topbar">
+      <div class="header-left">
+        <img src="images/logo.png" width="50" />
         <div class="header-text">
-            <h1>Smart Course Companion</h1>
-            <span>Admin Panel</span>
+          <h1>Smart Course Companion</h1>
+          <span>Admin Panel</span>
         </div>
-    </div>
+      </div>
 
-    <nav class="admin-nav">
+      <nav class="admin-nav">
         <a href="manage-course.html">Manage Courses</a>
         <a href="grades-admin.html" class="active">Manage Grades</a>
         <a href="assessments-admin.html">Manage Assessments</a>
         <a href="view-statistics.html">View Statistics</a>
-    </nav>
+      </nav>
 
-    <div class="header-right">
+      <div class="header-right">
         <a href="home-page.html" class="logout-btn">Logout</a>
+      </div>
+    </header>
+
+    <div class="page">
+      <h2>Grades Posted for : SOEN-287</h2>
+
+      <div class="panel">
+        <div class="table-actions">
+          <a class="btn primary" href="add-grade.html">+ Add Grade</a>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Assessment Object</th>
+              <th>Grade</th>
+              <th>Range</th>
+              <th>Weight</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr>
+              <td>Quiz 1</td>
+              <td>87</td>
+              <td>0-100</td>
+              <td>5%</td>
+              <td><a class="btn small" href="#">Edit</a></td>
+            </tr>
+
+            <tr>
+              <td>Midterm 1</td>
+              <td>76</td>
+              <td>0-100</td>
+              <td>25%</td>
+              <td><a class="btn small" href="#">Edit</a></td>
+            </tr>
+
+            <tr>
+              <td>Quiz 2</td>
+              <td>Not Graded</td>
+              <td>0-100</td>
+              <td>5%</td>
+              <td><a class="btn small" href="#">Edit</a></td>
+            </tr>
+
+            <tr>
+              <td>Final Exam</td>
+              <td>Not Graded</td>
+              <td>0-100</td>
+              <td>65%</td>
+              <td><a class="btn small" href="#">Edit</a></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="course-average">
+          <span class="avg-label">Course average</span>
+          <span class="avg-number">77.83%</span>
+        </div>
+      </div>
     </div>
-
-</header>
-
-<div class="page">
-  <h2>Grades Posted for : SOEN-287</h2>
-
-  <div class="panel">
-
-    <div class="table-actions">
-      <a class="btn primary" href="add-grade.html">+ Add Grade</a>
-    </div>
-
-    <table>
-      <thead>
-      <tr>
-        <th>Assessment Object</th>
-        <th>Grade</th>
-        <th>Range</th>
-        <th>Weight</th>
-        <th>Actions</th>
-      </tr>
-      </thead>
-
-      <tbody>
-      <tr>
-        <td>Quiz 1</td>
-        <td>87</td>
-        <td>0-100</td>
-        <td>5%</td>
-        <td><a class="btn small" href="#">Edit</a></td>
-      </tr>
-
-      <tr>
-        <td>Midterm 1</td>
-        <td>76</td>
-        <td>0-100</td>
-        <td>25%</td>
-        <td><a class="btn small" href="#">Edit</a></td>
-      </tr>
-
-      <tr>
-        <td>Quiz 2</td>
-        <td>Not Graded</td>
-        <td>0-100</td>
-        <td>5%</td>
-        <td><a class="btn small" href="#">Edit</a></td>
-      </tr>
-
-      <tr>
-        <td>Final Exam</td>
-        <td>Not Graded</td>
-        <td>0-100</td>
-        <td>65%</td>
-        <td><a class="btn small" href="#">Edit</a></td>
-      </tr>
-      </tbody>
-    </table>
-
-    <div class="course-average">
-      <span class="avg-label">Course average</span>
-      <span class="avg-number">77.83%</span>
-    </div>
-  </div>
-</div>
-</body>
+  </body>
 </html>

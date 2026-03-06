@@ -1,104 +1,98 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Statistics</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/png" href="images/logo.png">
-    <link rel="stylesheet" href="css/admin-styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/png" href="images/logo.png" />
+    <link rel="stylesheet" href="css/admin-styles.css" />
 
     <!-- Chart.js to generate charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-
-  <header class="topbar">
-
-        <div class="header-left">
-        <img src="images/logo.png" width="50" >
-            <div class="header-text">
-                <h1>Smart Course Companion</h1>
-                <span>Instructor Panel</span>
-            </div>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="header-left">
+        <img src="images/logo.png" width="50" />
+        <div class="header-text">
+          <h1>Smart Course Companion</h1>
+          <span>Instructor Panel</span>
         </div>
+      </div>
 
-        <nav class="admin-nav">
-            <a href="manage-course.html">Manage Courses</a>
-            <a href="grades-admin.html">Manage Grades</a>
-            <a href="assessments-admin.html">Manage Assessments</a>
-            <a href="view-statistics.html" class="active">View Statistics</a>
-        </nav>
+      <nav class="admin-nav">
+        <a href="manage-course.html">Manage Courses</a>
+        <a href="grades-admin.html">Manage Grades</a>
+        <a href="assessments-admin.html">Manage Assessments</a>
+        <a href="view-statistics.html" class="active">View Statistics</a>
+      </nav>
 
-        <div class="header-right">
-            <a href="home-page.html" class="logout-btn">Logout</a>
-        </div>
-
+      <div class="header-right">
+        <a href="home-page.html" class="logout-btn">Logout</a>
+      </div>
     </header>
 
     <h2>Statistics</h2>
 
     <section class="summary-section">
-        <div class="summary-card">
-            <h4>Total Courses</h4>
-            <p>3</p>
-        </div>
+      <div class="summary-card">
+        <h4>Total Courses</h4>
+        <p>3</p>
+      </div>
 
-        <div class="summary-card">
-            <h4>Total Assessments</h4>
-            <p>16</p>
-        </div>
+      <div class="summary-card">
+        <h4>Total Assessments</h4>
+        <p>16</p>
+      </div>
 
-        <div class="summary-card">
-            <h4>Completed</h4>
-            <p>12</p>
-        </div>
+      <div class="summary-card">
+        <h4>Completed</h4>
+        <p>12</p>
+      </div>
 
-        <div class="summary-card">
-            <h4>Overall Average</h4>
-            <p>75%</p>
-        </div>
+      <div class="summary-card">
+        <h4>Overall Average</h4>
+        <p>75%</p>
+      </div>
     </section>
 
     <section class="course-averages">
-        <h3>Course Averages</h3>
+      <h3>Course Averages</h3>
 
-        <div class="course">
-            <p>SOEN 287 - Web Programming (84%)</p>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: 84%;"></div>
-            </div>
+      <div class="course">
+        <p>SOEN 287 - Web Programming (84%)</p>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 84%"></div>
         </div>
+      </div>
 
-        <div class="course">
-            <p>COMP 249 - Object-Oriented Programming II (76%)</p>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: 76%;"></div>
-            </div>
+      <div class="course">
+        <p>COMP 249 - Object-Oriented Programming II (76%)</p>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 76%"></div>
         </div>
+      </div>
 
-        <div class="course">
-            <p>SOEN 228 - System Hardware (65%)</p>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: 65%;"></div>
-            </div>
+      <div class="course">
+        <p>SOEN 228 - System Hardware (65%)</p>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 65%"></div>
         </div>
+      </div>
     </section>
 
     <section class="charts-section">
+      <div class="chart-card">
+        <h3>Assessment Completion</h3>
+        <canvas id="completionChart"></canvas>
+      </div>
 
-        <div class="chart-card">
-            <h3>Assessment Completion</h3>
-            <canvas id="completionChart"></canvas>
-        </div>
-
-        <div class="chart-card">
-            <h3>Performance Trend (SOEN 287)</h3>
-            <canvas id="trendChart"></canvas>
-        </div>
-
+      <div class="chart-card">
+        <h3>Performance Trend (SOEN 287)</h3>
+        <canvas id="trendChart"></canvas>
+      </div>
     </section>
 
-    <script src="js/generate-charts.js"></script>    
-
-</body>
+    <script src="js/generate-charts.js"></script>
+  </body>
 </html>
