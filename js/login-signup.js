@@ -1,6 +1,7 @@
 const form = document.getElementById('login-signupForm');
 
 form.addEventListener('submit', function(event) {
+    // Stops the page from reloading so JS can run first
     event.preventDefault();
 
     const roles = document.getElementsByName('role');

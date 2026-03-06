@@ -252,12 +252,12 @@ button:hover{
     opacity: 0.85;
 }
 
-.student-nav {
+.admin-nav {
     display: flex;
     gap: 20px;
 }
 
-.student-nav a {
+.admin-nav a {
     text-decoration: none;
     background: white;
     color: #333;
@@ -266,11 +266,11 @@ button:hover{
     font-weight: 600;
 }
 
-.student-nav a:hover {
+.admin-nav a:hover {
     background: #f2f2f2;
 }
 
-.student-nav a.active {
+.admin-nav a.active {
     background: #333;
     color: white;
 }

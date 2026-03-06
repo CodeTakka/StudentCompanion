@@ -130,11 +130,102 @@
             filter:brightness(0.96);
         }
 
+        /* Header and navigation */
+        
+        .topbar {
+            background-color: #c94444;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 40px;
+            flex-wrap: wrap;
+        }
 
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-text h1 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .header-text span {
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        .admin-nav {
+            display: flex;
+            gap: 20px;
+        }
+
+        .admin-nav a {
+            text-decoration: none;
+            background: white;
+            color: #333;
+            padding: 8px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .admin-nav a:hover {
+            background: #f2f2f2;
+        }
+
+        .admin-nav a.active {
+            background: #333;
+            color: white;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background: transparent;
+            border: 2px solid white;
+            padding: 6px 14px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+        }
+
+        .logout-btn:hover {
+            background: white;
+            color: #c94444;
+        }
     </style>
 </head>
 
 <body>
+<header class="topbar">
+
+    <div class="header-left">
+        <img src="images/logo.png" width="50" >
+        <div class="header-text">
+            <h1>Smart Course Companion</h1>
+            <span>Admin Panel</span>
+        </div>
+    </div>
+
+    <nav class="admin-nav">
+        <a href="manage-course.html">Manage Courses</a>
+        <a href="grades-admin.html">Manage Grades</a>
+        <a href="assessments-admin.html" class="active">Manage Assessments</a>
+        <a href="view-statistics.html">View Statistics</a>
+    </nav>
+
+    <div class="header-right">
+        <a href="home-page.html" class="logout-btn">Logout</a>
+    </div>
+
+</header>
 
 <div class="page">
     <h2>SOEN 287 — Assessments</h2>
@@ -142,7 +233,7 @@
     <div class="panel">
 
         <div class="table-actions">
-            <a class="btn primary" href="AddAssessment.html">+ Add Assessment</a>
+            <a class="btn primary" href="add-assessment.html">+ Add Assessment</a>
         </div>
 
         <table class="assess-table">
