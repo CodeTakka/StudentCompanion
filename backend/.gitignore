@@ -1,0 +1,6 @@
+# Prevents these files from being committed to github
+# It's a huge security risk if they're sent to github
+
+node_modules/
+.env
+*.log
