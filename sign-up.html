@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="images/logo.png" />
     <link rel="stylesheet" href="css/user-styles.css" />
   </head>
-  
+
   <body>
     <div class="wrapper">
       <form id="login-signupForm">
@@ -16,16 +16,36 @@
         </div>
         <h1>Signup</h1>
         <div class="input-box">
-          <input type="text" placeholder="First name" />
+          <input
+            type="text"
+            id="firstNameInput"
+            placeholder="First name"
+            autocomplete="given-name"
+          />
         </div>
         <div class="input-box">
-          <input type="text" placeholder="Last name" />
+          <input
+            type="text"
+            id="lastNameInput"
+            placeholder="Last name"
+            autocomplete="family-name"
+          />
         </div>
         <div class="input-box">
-          <input type="email" placeholder="Email" />
+          <input
+            type="email"
+            id="emailInput"
+            placeholder="Email"
+            autocomplete="email"
+          />
         </div>
         <div class="input-box">
-          <input type="password" placeholder="password" />
+          <input
+            type="password"
+            id="passwordInput"
+            placeholder="Password"
+            autocomplete="new-password"
+          />
         </div>
         <div class="role-selector">
           <label>
@@ -47,6 +67,7 @@
       </form>
     </div>
 
+    <script src="js/api.js"></script>
     <script src="js/login-signup.js"></script>
   </body>
 </html>

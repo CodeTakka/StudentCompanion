@@ -1,7 +1,10 @@
-const logoutBtn = document.getElementById("logoutBtn")
+const logoutBtn = document.getElementById('logoutBtn');
 
 // Logout
-logoutBtn.addEventListener("click", (e) => {
-  e.preventDefault();
-  window.location.href = "home-page.html";
-});
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    clearSession();
+    window.location.href = 'home-page.html';
+  });
+}

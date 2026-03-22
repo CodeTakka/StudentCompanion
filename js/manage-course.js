@@ -1,17 +1,11 @@
-document.addEventListener("DOMContentLoaded", function () {
+requireAuth();
+
+document.addEventListener("DOMContentLoaded", async function () {
   const form = document.getElementById("createCourseForm");
   const messageDiv = document.getElementById("message");
   const submitButton = document.getElementById("submitCourseButton");
 
-  document
-    .getElementById("sampleCourse")
-    .addEventListener("click", function () {
-      createSampleCourse();
-      displayCourses();
-    });
-
-  let courses = [];
-  let editIndex = null; // Index of courses (e.g., The first course created has an index of 0)
+  let editId = null; // MongoDB _id of course being edited (null = creating new)
 
   const requiredFields = [
     { name: "code", label: "Course Code" },
@@ -21,197 +15,169 @@ document.addEventListener("DOMContentLoaded", function () {
     { name: "termYear", label: "Year" },
   ];
 
+  function showMessage(msg, type = "success") {
+    messageDiv.className = `message ${type}`;
+    messageDiv.textContent = msg;
+  }
+
   function validateForm() {
     let isValid = true;
-    const errors = []; // collect all error messages
-
-    // Clear previous highlights
-    const inputs = form.querySelectorAll("input, select, textarea");
-    inputs.forEach((input) => input.classList.remove("error-field"));
+    const errors = [];
+    form
+      .querySelectorAll("input, select, textarea")
+      .forEach((i) => i.classList.remove("error-field"));
 
     requiredFields.forEach((field) => {
-      const input = form.querySelector("[name=" + field.name + "]");
-      if (!input) {
-        console.warn("Field " + field.name + " not found");
-        return;
-      }
-
-      // Check if empty
+      const input = form.querySelector(`[name=${field.name}]`);
+      if (!input) return;
       if (!input.value.trim()) {
         input.classList.add("error-field");
         isValid = false;
-        errors.push("Please fill " + field.label);
+        errors.push(`Please fill ${field.label}`);
       }
-
-      // Extra check for termYear
       if (field.name === "termYear") {
         const year = Number(input.value);
         if (isNaN(year) || year < 1900 || year > 2100) {
           input.classList.add("error-field");
           isValid = false;
-          errors.push("Year must be a number between 1900 and 2100");
+          errors.push("Year must be between 1900 and 2100");
         }
       }
     });
 
     if (!isValid) {
       messageDiv.className = "message error";
-      // Joins errors with line breaks for readability
       messageDiv.innerHTML = errors.join("<br>");
     }
-
     return isValid;
   }
 
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-
-    // Stops the submit event listener if the form isn't valid
-    if (!validateForm()) return;
-
-    const code = form.code.value.trim();
-    const courseName = form.name.value.trim();
-    const instructor = form.instructor.value.trim();
-    const termSeason = form.termSeason.value;
-    const termYear = form.termYear.value;
-    const description = form.description.value.trim();
-    const enabled = form.enabled.checked;
-
-    const term = termSeason + " " + termYear;
-
-    messageDiv.className = "message success";
-
-    /* If editIndex is null, that means the course information
-        was null, so that would mean a new course is being created */
-    if (editIndex !== null) {
-      const course = courses[editIndex];
-
-      /* course is constant, so its size is not changeable
-               but the elements inside of it are changeable */
-      course.code = code;
-      course.name = courseName;
-      course.instructor = instructor;
-      course.term = term;
-      course.description = description;
-      course.enabled = enabled;
-
-      messageDiv.textContent = "Course updated successfully!";
-      submitButton.textContent = "Create Course";
-      editIndex = null;
-    } else {
-      const newCourse = new Course(
-        code,
-        courseName,
-        instructor,
-        term,
-        description,
-        enabled,
-        50, // hardcoded progress of 50%, will be changed in deliverable 2
-      );
-
-      courses.push(newCourse);
-
-      messageDiv.textContent = "Course created successfully!";
+  async function loadCourses() {
+    try {
+      const courses = await apiGetCourses();
+      displayCourses(courses);
+    } catch (err) {
+      showMessage("Failed to load courses: " + err.message, "error");
     }
+  }
 
-    displayCourses();
-    form.reset();
-  });
-
-  function displayCourses() {
+  function displayCourses(courses) {
     const list = document.getElementById("courseList");
     list.innerHTML = "";
 
-    for (let i = 0; i < courses.length; i++) {
-      const course = courses[i];
-
-      list.innerHTML +=
-        // If course isn't enabled, add the disabled class to it
-        "<div class='course-card" +
-        (!course.enabled ? " disabled" : "") +
-        "'>" +
-        "<div class='course-title'>" +
-        course.code +
-        " - " +
-        course.name +
-        "</div>" +
-        "<div>" +
-        course.instructor +
-        " | " +
-        course.term +
-        "</div>" +
-        "<div>" +
-        course.description +
-        "</div>" +
-        "<div class='course-actions'>" +
-        "<button onclick='editCourse(" +
-        i +
-        ")'>Edit</button>" +
-        "<button onclick='deleteCourse(" +
-        i +
-        ")'>Delete</button>" +
-        "</div>" +
-        "</div>";
+  
+    if (!courses.length) { // If course.length is 0
+      list.innerHTML =
+        '<p style="color:#888; padding:10px">No courses yet.</p>';
+      return;
     }
+
+    courses.forEach((course) => {
+      list.innerHTML += `
+        <div class="course-card${!course.enabled ? " disabled" : ""}">
+          <div class="course-title">${course.code} - ${course.name}</div>
+          <div>${course.instructor || ""} | ${course.term || ""}</div>
+          <div>${course.description || ""}</div>
+          <div class="course-actions">
+            <button onclick="editCourse('${course._id}')">Edit</button>
+            <button onclick="deleteCourse('${course._id}')">Delete</button>
+          </div>
+        </div>`;
+    });
   }
 
-  function createSampleCourse() {
-    const sampleTerm = {
-      season: "Winter",
-      year: "2026",
+  // Form submit
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    const payload = {
+      code: form.code.value.trim(),
+      name: form.name.value.trim(),
+      instructor: form.instructor.value.trim(),
+      term: `${form.termSeason.value} ${form.termYear.value}`,
+      description: form.description.value.trim(),
+      enabled: form.enabled.checked,
     };
 
-    const sampleCourse = new Course(
-      "COMP249",
-      "Object-Oriented Programming II",
-      "Dr. Dargham",
-      sampleTerm.season + " " + sampleTerm.year,
-      "Intermediate to advanced programming topics like inheritance" +
-        ", polymorphism, exception handling, I/O, and more.",
-      true,
-    );
+    submitButton.disabled = true;
 
-    courses.push(sampleCourse);
-    sampleCourse.addAssessment(
-      new Assessment("Quiz 1", "Quiz", 0.1, new Date(2026, 1, 25)),
-      new Assessment("Assignment 1", "Assignment", 0.15, new Date(2026, 2, 20)),
-      new Assessment("Midterms", "Exam", 0.25, new Date(2026, 3, 10)),
-      new Assessment("Finals", "Exam", 0.5, new Date(2026, 4, 21)),
-    );
+    try {
+      if (editId) {
+        await apiUpdateCourse(editId, payload);
+        showMessage("Course updated successfully!");
+        submitButton.textContent = "Create Course";
+        editId = null;
+      } else {
+        await apiCreateCourse(payload);
+        showMessage("Course created successfully!");
+      }
+      form.reset();
+      await loadCourses();
+    } catch (err) {
+      showMessage(err.message, "error");
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
 
-    messageDiv.className = "message success";
-    messageDiv.textContent = "Course created successfully";
-  }
+  //  Sample course
+  document.getElementById("sampleCourse")?.addEventListener("click", async function () {
+      try {
+        await apiCreateCourse({
+          code: "COMP249",
+          name: "Object-Oriented Programming II",
+          instructor: "Dr. Dargham",
+          term: "Winter 2026",
+          description:
+            "Intermediate to advanced programming topics like inheritance, polymorphism, exception handling, I/O, and more.",
+          enabled: true,
+        });
+        showMessage("Sample course created successfully!");
+        await loadCourses();
+      } catch (err) {
+        showMessage(err.message, "error");
+      }
+    });
 
-  window.editCourse = function (index) {
-    submitButton.textContent = "Update Course";
+  // Edit
+  window.editCourse = async function (id) {
+    try {
+      const course = await apiGetCourse(id);
+      const termParts = (course.term || "").split(" ");
 
-    const course = courses[index];
+      form.code.value = course.code;
+      form.name.value = course.name;
+      form.instructor.value = course.instructor || "";
+      form.termSeason.value = termParts[0] || "";
+      form.termYear.value = termParts[1] || "";
+      form.description.value = course.description || "";
+      form.enabled.checked = course.enabled;
 
-    form.code.value = course.code;
-    form.name.value = course.name;
-    form.instructor.value = course.instructor;
-
-    const termParts = course.term.split(" ");
-    form.termSeason.value = termParts[0];
-    form.termYear.value = termParts[1];
-
-    form.description.value = course.description;
-    form.enabled.checked = course.enabled;
-
-    editIndex = index;
-
-    messageDiv.className = "message";
-    messageDiv.textContent = "Editing course...";
+      editId = id;
+      submitButton.textContent = "Update Course";
+      showMessage("Editing course…");
+    } catch (err) {
+      showMessage("Failed to load course: " + err.message, "error");
+    }
   };
 
-  window.deleteCourse = function (index) {
-    submitButton.textContent = "Create Course";
-
-    courses.splice(index, 1);
-    displayCourses();
-
-    messageDiv.className = "message success";
-    messageDiv.textContent = "Course deleted successfully.";
+  window.deleteCourse = async function (id) {
+    if (!confirm("Delete this course and all its assessments?")) return;
+    try {
+      await apiDeleteCourse(id);
+      showMessage("Course deleted successfully.");
+      if (editId === id) {
+        editId = null;
+        submitButton.textContent = "Create Course";
+        form.reset();
+      }
+      await loadCourses();
+    } catch (err) {
+      showMessage(err.message, "error");
+    }
   };
+
+  // Init
+  await loadCourses();
 });
