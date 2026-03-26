@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/png" href="images/logo.png" />
     <link rel="stylesheet" href="css/admin-styles.css" />
-
     <!-- Chart.js to generate charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
@@ -19,16 +18,14 @@
           <span>Admin Panel</span>
         </div>
       </div>
-
       <nav class="admin-nav">
         <a href="manage-course.html">Manage Courses</a>
         <a href="grades-admin.html">Manage Grades</a>
         <a href="assessments-admin.html">Manage Assessments</a>
         <a href="view-statistics.html" class="active">View Statistics</a>
       </nav>
-
       <div class="header-right">
-        <a href="home-page.html" class="logout-btn">Logout</a>
+        <a href="home-page.html" class="logout-btn" onclick="clearSession()">Logout</a>
       </div>
     </header>
 
@@ -37,47 +34,26 @@
     <section class="summary-section">
       <div class="summary-card">
         <h4>Total Courses</h4>
-        <p>3</p>
+        <p id="statCourses">—</p>
       </div>
-
       <div class="summary-card">
         <h4>Total Assessments</h4>
-        <p>16</p>
+        <p id="statAssessments">—</p>
       </div>
-
       <div class="summary-card">
-        <h4>Completed</h4>
-        <p>12</p>
+        <h4>Completed Assessments</h4>
+        <p id="statCompleted">—</p>
       </div>
-
       <div class="summary-card">
         <h4>Overall Average</h4>
-        <p>75%</p>
+        <p id="statOverallAverage">—</p>
       </div>
     </section>
 
     <section class="course-averages">
       <h3>Course Averages</h3>
-
-      <div class="course">
-        <p>SOEN 287 - Web Programming (84%)</p>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: 84%"></div>
-        </div>
-      </div>
-
-      <div class="course">
-        <p>COMP 249 - Object-Oriented Programming II (76%)</p>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: 76%"></div>
-        </div>
-      </div>
-
-      <div class="course">
-        <p>SOEN 228 - System Hardware (65%)</p>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: 65%"></div>
-        </div>
+      <div id="courseAveragesContainer">
+        <!-- Dynamic course averages will be inserted here -->
       </div>
     </section>
 
@@ -86,13 +62,14 @@
         <h3>Assessment Completion</h3>
         <canvas id="completionChart"></canvas>
       </div>
-
       <div class="chart-card">
-        <h3>Performance Trend (SOEN 287)</h3>
+        <h3>Performance Trend</h3>
         <canvas id="trendChart"></canvas>
       </div>
     </section>
 
+    <script src="js/api.js"></script>
+    <script>requireAuth();</script>
     <script src="js/generate-charts.js"></script>
   </body>
 </html>

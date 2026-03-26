@@ -2,12 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>SOEN 287 Assessments</title>
+    <title>Assessments</title>
     <link rel="icon" type="image/png" href="images/logo.png" />
     <link rel="stylesheet" href="css/general-student.css" />
     <link rel="stylesheet" href="css/student-assessment.css" />
   </head>
-
   <body>
     <header class="topbar">
       <div class="brand">
@@ -17,7 +16,6 @@
           <p class="muted">Courses • Progress • Calendar</p>
         </div>
       </div>
-
       <nav class="student-nav">
         <a class="dashboard" href="dashboard.html">Dashboard</a>
         <a href="#" id="logoutBtn">Logout</a>
@@ -25,68 +23,31 @@
     </header>
 
     <div class="page">
-      <h2>SOEN 287 — Assessments</h2>
+      <h2 id="pageTitle">Assessments</h2>
 
       <div class="panel">
-        <div class="table-actions"></div>
-
         <table class="assess-table">
           <thead>
             <tr>
               <th>Assessment</th>
               <th>Type</th>
-              <th>Due date</th>
+              <th>Due Date</th>
               <th>Grade</th>
               <th>Weight</th>
               <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
-
-          <tbody>
-            <tr>
-              <td>Quiz 1</td>
-              <td>Quiz</td>
-              <td>Feb 12, 2026</td>
-              <td>87 / 100</td>
-              <td>5%</td>
-              <td><span class="status done">Completed</span></td>
-              <td></td>
-            </tr>
-
-            <tr>
-              <td>Midterm 1</td>
-              <td>Exam</td>
-              <td>Feb 20, 2026</td>
-              <td>76 / 100</td>
-              <td>25%</td>
-              <td><span class="status done">Completed</span></td>
-              <td></td>
-            </tr>
-
-            <tr>
-              <td>Quiz 2</td>
-              <td>Quiz</td>
-              <td>Mar 6, 2026</td>
-              <td>Not Graded</td>
-              <td>15%</td>
-              <td><span class="status comingup">Coming up</span></td>
-              <td></td>
-            </tr>
-
-            <tr>
-              <td>Final Exam</td>
-              <td>Exam</td>
-              <td>April 1, 2026</td>
-              <td>Not Graded</td>
-              <td>55%</td>
-              <td><span class="status comingup">Coming up</span></td>
-              <td></td>
-            </tr>
+          <tbody id="assessmentTableBody">
+            <tr><td colspan="7" style="text-align:center;color:#888">Loading…</td></tr>
           </tbody>
         </table>
       </div>
     </div>
+
     <script src="js/api.js"></script>
+    <script>requireAuth();</script>
     <script src="js/navigation.js"></script>
+    <script src="js/student-assessment.js"></script>
   </body>
 </html>
