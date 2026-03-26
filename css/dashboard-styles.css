@@ -85,6 +85,12 @@ h1 {
   border-color: #cccccc;
 }
 
+.student-nav a.dashboard {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
 .container {
   max-width: 1200px;
   margin: 40px auto;

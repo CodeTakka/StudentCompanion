@@ -2,84 +2,81 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Manage Grades</title>
+    <title>My Grades</title>
     <link rel="icon" type="image/png" href="images/logo.png" />
-    <link rel="stylesheet" href="css/grades-admin-styles.css" />
+    <link rel="stylesheet" href="css/general-student.css" />
+    <link rel="stylesheet" href="css/student-assessment.css" />
   </head>
   <body>
     <header class="topbar">
-      <div class="header-left">
+      <div class="brand">
         <img src="images/logo.png" width="50" />
-        <div class="header-text">
-          <h1>Smart Course Companion</h1>
-          <span>Admin Panel</span>
+        <div>
+          <h1>My Grades</h1>
+          <p class="muted">Academic Performance • Course Totals</p>
         </div>
       </div>
-      <nav class="admin-nav">
-        <a href="manage-course.html">Manage Courses</a>
-        <a href="grades-admin.html" class="active">Manage Grades</a>
-        <a href="assessments-admin.html">Manage Assessments</a>
-        <a href="view-statistics.html">View Statistics</a>
+      <nav class="student-nav">
+        <a class="dashboard" href="dashboard.html">Dashboard</a>
+        <a class="dashboard active" href="grades.html">Grades</a>
+        <a class="dashboard" href="student-assessment.html">Assessments</a>
+        <a href="#" id="logoutBtn">Logout</a>
       </nav>
-      <div class="header-right">
-        <a href="home-page.html" class="logout-btn" onclick="clearSession()">Logout</a>
-      </div>
     </header>
 
     <div class="page">
-      <h2>Manage Grades</h2>
+      <h2>Grade Summary</h2>
 
-      <!-- Course selector -->
-      <div class="panel" style="margin-bottom:16px">
-        <label><strong>Select Course:</strong>
-          <select id="courseSelect" style="margin-left:10px;padding:6px">
-            <option value="">— choose a course —</option>
-          </select>
-        </label>
+      <div class="panel" style="margin-bottom: 20px">
+        <label for="courseSelect"><strong>View Grades For:</strong></label>
+        <select
+          id="courseSelect"
+          style="margin-left: 10px; padding: 8px; border-radius: 5px"
+        >
+          <option value="">— Select a Course —</option>
+        </select>
       </div>
 
-      <div class="panel" id="gradesPanel" style="display:none">
-        <table>
+      <div class="panel" id="gradesPanel">
+        <table class="assess-table">
           <thead>
             <tr>
               <th>Assessment</th>
-              <th>Earned Marks</th>
-              <th>Total Marks</th>
+              <th>Score</th>
               <th>Weight</th>
-              <th>Actions</th>
+              <th>Weighted Grade</th>
             </tr>
           </thead>
           <tbody id="gradesTableBody">
-            <tr><td colspan="5" style="text-align:center;color:#888">Select a course above.</td></tr>
+            <tr>
+              <td colspan="4" style="text-align: center; color: #888">
+                Please select a course to view your progress.
+              </td>
+            </tr>
           </tbody>
         </table>
-        <div class="course-average">
-          <span class="avg-label">Course average</span>
-          <span class="avg-number" id="courseAverage">—</span>
-        </div>
-      </div>
 
-      <!-- Inline grade edit form -->
-      <div class="panel" id="gradeForm" style="display:none">
-        <h3>Enter Grade for: <span id="gradeAssessmentName"></span></h3>
-        <div class="form-group">
-          <label>Earned Marks</label>
-          <input type="number" id="gEarned" placeholder="e.g. 87" min="0" />
+        <div
+          class="panel"
+          style="margin-top: 20px; background: #f9f9f9; text-align: right"
+        >
+          <span style="font-size: 1.1em; font-weight: bold"
+            >Current Course Average:
+          </span>
+          <span
+            id="courseAverage"
+            style="font-size: 1.5em; color: #2c3e50; margin-left: 10px"
+            >—</span
+          >
         </div>
-        <div class="form-group">
-          <label>Total Marks</label>
-          <input type="number" id="gTotal" placeholder="e.g. 100" min="1" />
-        </div>
-        <div class="btn-row">
-          <button class="btn" onclick="hideGradeForm()">Cancel</button>
-          <button class="btn primary" onclick="submitGradeForm()">Save Grade</button>
-        </div>
-        <p id="gradeFormMessage" style="color:#c0392b;margin-top:8px"></p>
       </div>
     </div>
 
     <script src="js/api.js"></script>
-    <script>requireAuth();</script>
-    <script src="js/grades-admin.js"></script>
+    <script>
+      requireAuth();
+    </script>
+    <script src="js/navigation.js"></script>
+    <script src="js/student-grades.js"></script>
   </body>
 </html>

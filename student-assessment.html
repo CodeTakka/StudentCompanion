@@ -12,12 +12,14 @@
       <div class="brand">
         <img src="images/logo.png" width="50" />
         <div>
-          <h1>Student Dashboard</h1>
-          <p class="muted">Courses • Progress • Calendar</p>
+          <h1>My Assessments</h1>
+          <p class="muted">View Asssessments • Submit Assessments</p>
         </div>
       </div>
       <nav class="student-nav">
         <a class="dashboard" href="dashboard.html">Dashboard</a>
+        <a class="dashboard" href="grades.html">Grades</a>
+        <a class="dashboard active" href="student-assessment.html">Assessments</a>
         <a href="#" id="logoutBtn">Logout</a>
       </nav>
     </header>
@@ -39,14 +41,20 @@
             </tr>
           </thead>
           <tbody id="assessmentTableBody">
-            <tr><td colspan="7" style="text-align:center;color:#888">Loading…</td></tr>
+            <tr>
+              <td colspan="7" style="text-align: center; color: #888">
+                Loading…
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
     </div>
 
     <script src="js/api.js"></script>
-    <script>requireAuth();</script>
+    <script>
+      requireAuth();
+    </script>
     <script src="js/navigation.js"></script>
     <script src="js/student-assessment.js"></script>
   </body>

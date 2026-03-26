@@ -3,7 +3,11 @@
 const params = new URLSearchParams(window.location.search);
 const courseId = params.get("courseId");
 
-if (!courseId) window.location.href = "dashboard.html";
+if (courseId) {
+  loadAssessments(courseId);
+} else {
+  console.log("No course selected yet.");
+}
 
 function formatDate(iso) {
   if (!iso) return "—";
@@ -71,5 +75,14 @@ window.toggleComplete = async function (id, currentStatus) {
   }
 };
 
-loadAssessments();
-EOF;
+// If courseId exists and it isn't null, load the assessments
+if (courseId && courseId !== "null") {
+  loadAssessments();
+} else {
+  console.log("No course selected yet.");
+  const tbody = document.getElementById("assessmentTableBody");
+  if (tbody) {
+    tbody.innerHTML =
+      '<tr><td colspan="7" style="text-align:center;color:#888">Please select a course from the dashboard.</td></tr>';
+  }
+}
