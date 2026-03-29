@@ -1,43 +1,52 @@
-const completionCtx = document
-  .getElementById("completionChart")
-  .getContext("2d");
-new Chart(completionCtx, {
-  type: "pie",
-  data: {
-    labels: ["Completed", "Pending"],
-    datasets: [
-      {
-        data: [12, 4],
-        backgroundColor: ["#28a745", "#dc3545"],
-      },
-    ],
-  },
-});
+async function loadStats() {
+  try {
+    const stats = await apiGetStats();
 
-// Grade Trend Line Chart
-const trendCtx = document.getElementById("trendChart").getContext("2d");
+    document.getElementById('statCourses').textContent     = stats.totalCourses;
+    document.getElementById('statAssessments').textContent = stats.totalAssessments;
+    document.getElementById('statCompleted').textContent   = stats.completedAssessments;
+    document.getElementById('statOverallAverage').textContent = `${stats.completionRate}%`;
 
-new Chart(trendCtx, {
-  type: "line",
-  data: {
-    labels: ["Assignment 1", "Quiz 1", "Midterm", "Assignment 2"],
-    datasets: [
-      {
-        label: "Grade (%)",
-        data: [72, 78, 85, 88],
-        borderColor: "#b33149",
-        backgroundColor: "rgba(145, 35, 56, 0.2)",
-        fill: true,
-        tension: 0.3,
-      },
-    ],
-  },
-  options: {
-    scales: {
-      y: {
-        beginAtZero: true,
-        max: 100,
-      },
+    renderCompletionChart(stats);
+    renderTrendChart(stats);
+
+  } catch (err) {
+    document.querySelector('.summary-section').innerHTML =
+      `<p style="color:#c0392b">Failed to load statistics: ${err.message}</p>`;
+  }
+}
+
+function renderCompletionChart(stats) {
+  const ctx = document.getElementById('completionChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: ['Completed', 'Pending'],
+      datasets: [{
+        data: [
+          stats.completedAssessments,
+          stats.totalAssessments - stats.completedAssessments
+        ],
+        backgroundColor: ['#28a745', '#dc3545'],
+      }]
     },
-  },
-});
+    options: { plugins: { legend: { position: 'bottom' } } }
+  });
+}
+
+function renderTrendChart(stats) {
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Enabled Courses', 'Disabled Courses'],
+      datasets: [{
+        data: [stats.enabledCourses, stats.disabledCourses],
+        backgroundColor: ['#007bff', '#6c757d'],
+      }]
+    },
+    options: { plugins: { legend: { position: 'bottom' } } }
+  });
+}
+
+loadStats();
