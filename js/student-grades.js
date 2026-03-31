@@ -3,7 +3,14 @@
 const params   = new URLSearchParams(window.location.search);
 const courseId = params.get('courseId');
 
-if (!courseId) window.location.href = 'dashboard.html';
+if (!courseId || courseId === "null") {
+  const tbody = document.getElementById("gradesTableBody");
+  tbody.innerHTML = `
+    <tr><td colspan="4" style="text-align:center;color:#888">
+      Please select a course from the dashboard.
+    </td></tr>`;
+  return;
+}
 
 async function loadGrades() {
   const tbody = document.getElementById('gradesTableBody');
