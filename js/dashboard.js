@@ -1,322 +1,221 @@
-const CURRENT_TERM = "Winter 2026";
+requireAuth();
 
-const COURSE = {
-  code: "SOEN 287",
-  name: "Web Programming",
-  instructor: "Professor",
-  term: CURRENT_TERM,
-};
-
-const ASSESSMENTS = [
-  {
-    assessment: "Quiz 1",
-    type: "Quiz",
-    due: "2026-02-12",
-    gradeOutOf100: 87,
-    weightPercent: 5,
-    completed: true,
-  },
-  {
-    assessment: "Midterm 1",
-    type: "Exam",
-    due: "2026-02-20",
-    gradeOutOf100: 76,
-    weightPercent: 25,
-    completed: true,
-  },
-  {
-    assessment: "Quiz 2",
-    type: "Quiz",
-    due: "2026-03-06",
-    gradeOutOf100: null,
-    weightPercent: 5,
-    completed: false,
-  },
-  {
-    assessment: "Final Exam",
-    type: "Exam",
-    due: "2026-04-15",
-    gradeOutOf100: null,
-    weightPercent: 45,
-    completed: false,
-  },
-];
-
-// Elements
-const statCourses = document.getElementById("statCourses");
-const statAvgProgress = document.getElementById("statAvgProgress");
-const statAvgGrade = document.getElementById("statAvgGrade");
-const statTerm = document.getElementById("statTerm");
-const chart = document.getElementById("courseChart");
-
-const courseSnapshot = document.getElementById("courseSnapshot");
-const logoutBtn = document.getElementById("logoutBtn");
-
-// Calendar elements
-const prevMonthBtn = document.getElementById("prevMonthBtn");
-const nextMonthBtn = document.getElementById("nextMonthBtn");
-const todayBtn = document.getElementById("todayBtn");
-const calendarTitle = document.getElementById("calendarTitle");
-const calendarGrid = document.getElementById("calendarGrid");
-const selectedDateLabel = document.getElementById("selectedDateLabel");
-const dayItems = document.getElementById("dayItems");
-
-// Calendar state
-let calCursor = new Date();
-let selectedDate = new Date();
-
-// -------- Utils --------
+// Makes it so the browser displays text instead of running code if a code is injected via <script> tags
 function escapeHtml(str) {
-  return String(str).replace(
-    /[&<>"']/g,
-    (s) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      })[s],
+  return String(str).replace(/[&<>"']/g, s =>
+    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[s]
   );
 }
 
-function clampPercent(n) {
-  const x = Number(n);
-  if (Number.isNaN(x)) return 0;
-  return Math.max(0, Math.min(100, x));
-}
-
+// Date format
 function fmtISO(d) {
   const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
   return `${y}-${m}-${day}`;
 }
 
-function sameDay(a, b) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
+function sameDay(a,b) {
+  return a.getFullYear()===b.getFullYear() &&
+         a.getMonth()===b.getMonth() &&
+         a.getDate()===b.getDate();
 }
 
-// -------- Progress + Avg Grade logic --------
-// Progress = sum(weights of completed) / sum(weights of all listed) * 100
-// Avg Grade = weighted average over completed only (normalized by completed weight)
-function computeCourseProgressAndAvg() {
-  const totalWeight = ASSESSMENTS.reduce(
-    (s, a) => s + clampPercent(a.weightPercent),
-    0,
-  );
-  const completed = ASSESSMENTS.filter((a) => a.completed);
-  const completedWeight = completed.reduce(
-    (s, a) => s + clampPercent(a.weightPercent),
-    0,
-  );
+const statCourses       = document.getElementById('statCourses');
+const statAvgProgress   = document.getElementById('statAvgProgress');
+const statAvgGrade      = document.getElementById('statAvgGrade');
+const statTerm          = document.getElementById('statTerm');
+const chart             = document.getElementById('courseChart');
+const courseSnapshot    = document.getElementById('courseSnapshot');
+const prevMonthBtn      = document.getElementById('prevMonthBtn');
+const nextMonthBtn      = document.getElementById('nextMonthBtn');
+const todayBtn          = document.getElementById('todayBtn');
+const calendarTitle     = document.getElementById('calendarTitle');
+const calendarGrid      = document.getElementById('calendarGrid');
+const selectedDateLabel = document.getElementById('selectedDateLabel');
+const dayItems          = document.getElementById('dayItems');
 
-  const progress = totalWeight
-    ? Math.round((completedWeight / totalWeight) * 100)
-    : 0;
+let calCursor    = new Date();
+let selectedDate = new Date();
+let calendarItems = [];
 
-  let avgGrade = null;
-  if (completed.length && completedWeight > 0) {
-    let weightedSum = 0;
-    for (const a of completed) {
-      const g = clampPercent(a.gradeOutOf100);
-      const w = clampPercent(a.weightPercent);
-      weightedSum += g * w;
-    }
-    avgGrade = Math.round(weightedSum / completedWeight);
+async function loadDashboard() {
+  try {
+    const [courses, upcoming] = await Promise.all([
+      apiGetCourses(),
+      apiGetUpcomingAssessments()
+    ]);
+
+    calendarItems = upcoming
+    // removes items without due dates
+      .filter(a => a.dueDate)
+      .map(a => ({
+        date:  a.dueDate.slice(0, 10),
+        // If the course code is missing, it displays "Course".
+        title: `${a.courseId?.code || 'Course'} — ${a.name}`,
+        note:  `${a.type} • Weight ${Math.round(a.weight * 100)}% • ${a.completed ? 'Completed' : 'Pending'}`
+      }));
+
+    await renderStats(courses);
+    renderSnapshot(courses);
+    renderCalendar();
+
+  } catch (err) {
+    console.error('Dashboard load error:', err);
+    courseSnapshot.innerHTML = `<p style="color:#c0392b">Failed to load data: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+// Stats
+async function renderStats(courses) {
+  if (!courses.length) {
+    statCourses.textContent     = '0';
+    statAvgProgress.textContent = '—';
+    statAvgGrade.textContent    = '—';
+    statTerm.textContent        = '—';
+    return;
   }
 
-  return { progress, avgGrade };
+  const averages = await Promise.all(
+    courses.map(c => apiGetCourseAverage(c._id).catch(() => ({ average: null })))
+  );
+
+  // Removes any null average
+  const validAvgs = averages.map(r => r.average).filter(v => v !== null);
+  const overallAvg = validAvgs.length
+    ? Math.round(validAvgs.reduce((s,v) => s+v, 0) / validAvgs.length)
+    : null;
+
+  statCourses.textContent     = courses.length;
+  statAvgProgress.textContent = overallAvg !== null ? `${overallAvg}%` : '—';
+  statAvgGrade.textContent    = overallAvg !== null ? `${overallAvg}%` : '—';
+  statTerm.textContent        = courses[0]?.term || '—';
+
+  renderChart(courses, averages);
 }
 
-// -------- Render Snapshot + Stats + Chart --------
-function renderSnapshotAndStats() {
-  const { progress, avgGrade } = computeCourseProgressAndAvg();
+function renderSnapshot(courses) {
+  if (!courses.length) {
+    courseSnapshot.innerHTML = `<p class="hint">No courses yet.</p>`;
+    return;
+  }
 
-  // Stats
-  statCourses.textContent = "1";
-  statAvgProgress.textContent = `${progress}%`;
-  statAvgGrade.textContent = avgGrade === null ? "—" : `${avgGrade}%`;
-  statTerm.textContent = COURSE.term;
-
-  // Snapshot card
-  courseSnapshot.innerHTML = `
+  courseSnapshot.innerHTML = courses.map(c => `
     <div class="course">
       <div class="course-top">
         <div class="course-title">
-          <strong>${escapeHtml(COURSE.code)} — ${escapeHtml(COURSE.name)}</strong>
-          <div class="course-meta">${escapeHtml(COURSE.term)} • ${escapeHtml(COURSE.instructor)}</div>
-
-          <div class="pills">
-            <span class="pill good">Progress: ${progress}%</span>
-            <span class="pill">Avg Grade: ${avgGrade === null ? "—" : `${avgGrade}%`}</span>
-          </div>
-
-          <div class="progress" aria-label="Course progress bar">
-            <div style="width:${progress}%"></div>
-          </div>
+          <strong>${escapeHtml(c.code)} — ${escapeHtml(c.name)}</strong>
+          <div class="course-meta">${escapeHtml(c.term || '')} • ${escapeHtml(c.instructor || '')}</div>
         </div>
       </div>
     </div>
-  `;
+  `).join('');
 
-  // Chart: two bars (Grade + Progress)
-  chart.innerHTML = "";
-
-  const gradeBar = document.createElement("div");
-  gradeBar.className = "bar";
-  gradeBar.style.height = `${Math.max(8, avgGrade ?? 0)}%`;
-  gradeBar.title = `Average Grade: ${avgGrade === null ? "—" : `${avgGrade}%`}`;
-  const gradeLabel = document.createElement("span");
-  gradeLabel.textContent = "Grade";
-  gradeBar.appendChild(gradeLabel);
-
-  const progressBar = document.createElement("div");
-  progressBar.className = "bar";
-  progressBar.style.height = `${Math.max(8, progress)}%`;
-  progressBar.title = `Progress: ${progress}%`;
-  const progressLabel = document.createElement("span");
-  progressLabel.textContent = "Progress";
-  progressBar.appendChild(progressLabel);
-
-  chart.appendChild(gradeBar);
-  chart.appendChild(progressBar);
+  const viewBtn = document.getElementById('viewCourseBtn');
+  if (viewBtn) viewBtn.href = `course-info.html?courseId=${courses[0]._id}`;
 }
 
-// -------- Calendar items (due dates) --------
-function getCalendarItems() {
-  return ASSESSMENTS.map((a) => ({
-    date: a.due,
-    title: `${COURSE.code} — ${a.assessment}`,
-    note: `${a.type} • Weight ${a.weightPercent}% • ${a.completed ? "Completed" : "Pending"}`,
-  }));
+// Chart
+function renderChart(courses, averages) {
+  chart.innerHTML = '';
+  courses.forEach((c, i) => {
+    const avg = averages[i]?.average;
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    // The bar is at least 8% tall, so even the lowest possible grades are visible
+    bar.style.height = `${Math.max(8, avg ?? 0)}%`;
+    // If average isn't null and isn't undefined, it puts the average%, otherwise it displays "No grades yet"
+    bar.title = `${c.code}: ${avg !== null && avg !== undefined ? avg + '%' : 'No grades yet'}`;
+    const label = document.createElement('span');
+    label.textContent = c.code;
+    bar.appendChild(label);
+    chart.appendChild(bar);
+  });
 }
 
+// Calendar
 function renderDayPanel() {
+  // Ensures the correct format is used 
   const iso = fmtISO(selectedDate);
   selectedDateLabel.textContent = iso;
-
-  const items = getCalendarItems().filter((it) => it.date === iso);
-
-  dayItems.innerHTML = "";
+  const items = calendarItems.filter(it => it.date === iso);
+  dayItems.innerHTML = '';
   if (!items.length) {
     dayItems.innerHTML = `<p class="hint">No items for this day.</p>`;
     return;
   }
-
   for (const it of items) {
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `
-      <b>${escapeHtml(it.title)}</b>
-      <div class="small">${escapeHtml(it.note)}</div>
-    `;
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `<b>${escapeHtml(it.title)}</b><div class="small">${escapeHtml(it.note)}</div>`;
     dayItems.appendChild(div);
   }
 }
 
 function dayCell(dateObj, isMuted) {
   const iso = fmtISO(dateObj);
-  const itemsOnDay = getCalendarItems().filter((it) => it.date === iso);
-
-  const cell = document.createElement("div");
-  cell.className = "day" + (isMuted ? " muted" : "");
-  if (sameDay(dateObj, selectedDate)) cell.classList.add("selected");
-
-  const dots = itemsOnDay
-    .slice(0, 4)
-    .map(() => `<span class="cdot"></span>`)
-    .join("");
-
-  cell.innerHTML = `
-    <div class="num">${dateObj.getDate()}</div>
-    <div class="dotline">${dots}</div>
-  `;
-
-  cell.addEventListener("click", () => {
+  const itemsOnDay = calendarItems.filter(it => it.date === iso);
+  // Creating a new cell for the day
+  const cell = document.createElement('div');
+  cell.className = 'day' + (isMuted ? ' muted' : '');
+  if (sameDay(dateObj, selectedDate)) cell.classList.add('selected');
+  // Grabs only the first 4 items (to avoid the elements overflowing the screen)
+  const dots = itemsOnDay.slice(0,4).map(() => `<span class="cdot"></span>`).join('');
+  cell.innerHTML = `<div class="num">${dateObj.getDate()}</div><div class="dotline">${dots}</div>`;
+  cell.addEventListener('click', () => {
     selectedDate = new Date(dateObj);
-    [...calendarGrid.querySelectorAll(".day")].forEach((el) =>
-      el.classList.remove("selected"),
-    );
-    cell.classList.add("selected");
+    [...calendarGrid.querySelectorAll('.day')].forEach(el => el.classList.remove('selected'));
+    cell.classList.add('selected');
     renderDayPanel();
   });
-
   return cell;
 }
 
 function renderCalendar() {
-  const monthName = calCursor.toLocaleString("en-US", { month: "long" });
+  const monthName = calCursor.toLocaleString('en-US', { month: 'long' });
   calendarTitle.textContent = `${monthName} ${calCursor.getFullYear()}`;
-
-  calendarGrid.innerHTML = "";
+  calendarGrid.innerHTML = '';
 
   const year = calCursor.getFullYear();
   const month = calCursor.getMonth();
-
   const first = new Date(year, month, 1);
-  const last = new Date(year, month + 1, 0);
-
-  const startDow = first.getDay();
+  // Months go from 0 (January) to 11 (December)
+  const last  = new Date(year, month+1, 0);
+  const startDow    = first.getDay();
   const daysInMonth = last.getDate();
-
-  // Previous month trailing
   const prevLastDay = new Date(year, month, 0).getDate();
-  for (let i = 0; i < startDow; i++) {
-    const dayNum = prevLastDay - (startDow - 1 - i);
-    calendarGrid.appendChild(dayCell(new Date(year, month - 1, dayNum), true));
-  }
 
-  // Current month
-  for (let day = 1; day <= daysInMonth; day++) {
+  // Calculates how many days from the previous month are needed to fill the first row
+  for (let i=0; i<startDow; i++) {
+    calendarGrid.appendChild(dayCell(new Date(year, month-1, prevLastDay-(startDow-1-i)), true));
+  }
+  // Puts the days of the current month
+  for (let day=1; day<=daysInMonth; day++) {
     calendarGrid.appendChild(dayCell(new Date(year, month, day), false));
   }
 
-  // Next month fill
-  const totalCells = calendarGrid.children.length;
-  const remainder = totalCells % 7;
+  // Adds days of the next month to fill in the rows
+  const remainder = calendarGrid.children.length % 7;
   const fill = remainder === 0 ? 0 : 7 - remainder;
-  for (let i = 1; i <= fill; i++) {
-    calendarGrid.appendChild(dayCell(new Date(year, month + 1, i), true));
+  for (let i=1; i<=fill; i++) {
+    calendarGrid.appendChild(dayCell(new Date(year, month+1, i), true));
   }
-
   renderDayPanel();
 }
 
-// Controls
-prevMonthBtn.addEventListener("click", () => {
-  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() - 1, 1);
+prevMonthBtn.addEventListener('click', () => {
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth()-1, 1);
   renderCalendar();
 });
-nextMonthBtn.addEventListener("click", () => {
-  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 1);
+nextMonthBtn.addEventListener('click', () => {
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth()+1, 1);
   renderCalendar();
 });
-todayBtn.addEventListener("click", () => {
+todayBtn.addEventListener('click', () => {
   const now = new Date();
   calCursor = new Date(now.getFullYear(), now.getMonth(), 1);
   selectedDate = new Date(now);
   renderCalendar();
 });
 
-// Logout
-logoutBtn.addEventListener("click", (e) => {
-  e.preventDefault();
-  window.location.href = "home-page.html";
-});
-
-// -------- Initial render --------
-function rerenderAll() {
-  renderSnapshotAndStats();
-
-  // Start calendar on Feb 2026 so due dates are visible immediately
-  calCursor = new Date(2026, 1, 1); // February 2026
-  selectedDate = new Date(2026, 1, 12); // Feb 12, 2026
-  renderCalendar();
-}
-
-rerenderAll();
+loadDashboard();
