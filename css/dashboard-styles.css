@@ -489,3 +489,39 @@ h1 {
   border: 1px solid var(--border);
   background: #fafafa;
 }
+
+/* Available courses */
+#availableCourses {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.course-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.course-info h3 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.course-meta {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0 0 8px 0;
+}
+
+.course-desc {
+  color: var(--text);
+  font-size: 14px;
+  margin: 0;
+}

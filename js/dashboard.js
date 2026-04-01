@@ -27,6 +27,7 @@ const statAvgGrade      = document.getElementById('statAvgGrade');
 const statTerm          = document.getElementById('statTerm');
 const chart             = document.getElementById('courseChart');
 const courseSnapshot    = document.getElementById('courseSnapshot');
+const availableCourses  = document.getElementById('availableCourses');
 const prevMonthBtn      = document.getElementById('prevMonthBtn');
 const nextMonthBtn      = document.getElementById('nextMonthBtn');
 const todayBtn          = document.getElementById('todayBtn');
@@ -41,10 +42,15 @@ let calendarItems = [];
 
 async function loadDashboard() {
   try {
-    const [courses, upcoming] = await Promise.all([
+    const [allCourses, enrolledCourses, upcoming] = await Promise.all([
+      apiGetAllCourses(),
       apiGetCourses(),
       apiGetUpcomingAssessments()
     ]);
+
+    // Filter available courses: enabled courses not enrolled in
+    const enrolledIds = new Set(enrolledCourses.map(c => c._id));
+    const available = allCourses.filter(c => !enrolledIds.has(c._id));
 
     calendarItems = upcoming
     // removes items without due dates
@@ -56,8 +62,9 @@ async function loadDashboard() {
         note:  `${a.type} • Weight ${Math.round(a.weight * 100)}% • ${a.completed ? 'Completed' : 'Pending'}`
       }));
 
-    await renderStats(courses);
-    renderSnapshot(courses);
+    await renderStats(enrolledCourses);
+    renderSnapshot(enrolledCourses);
+    renderAvailableCourses(available);
     renderCalendar();
 
   } catch (err) {
@@ -113,6 +120,38 @@ function renderSnapshot(courses) {
 
   const viewBtn = document.getElementById('viewCourseBtn');
   if (viewBtn) viewBtn.href = `course-info.html?courseId=${courses[0]._id}`;
+}
+
+function renderAvailableCourses(courses) {
+  if (!courses.length) {
+    availableCourses.innerHTML = `<p class="hint">No available courses to enroll in.</p>`;
+    return;
+  }
+
+  availableCourses.innerHTML = courses.map(c => `
+    <div class="course-card">
+      <div class="course-info">
+        <h3>${escapeHtml(c.code)} — ${escapeHtml(c.name)}</h3>
+        <p class="course-meta">${escapeHtml(c.term || '')} • ${escapeHtml(c.instructor || '')}</p>
+        <p class="course-desc">${escapeHtml(c.description || 'No description available.')}</p>
+      </div>
+      <button class="btn primary enroll-btn" data-course-id="${c._id}">Enroll</button>
+    </div>
+  `).join('');
+
+  // Add event listeners for enroll buttons
+  document.querySelectorAll('.enroll-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const courseId = e.target.dataset.courseId;
+      try {
+        await apiEnrollCourse(courseId);
+        alert('Successfully enrolled in the course!');
+        loadDashboard(); // Reload to update the lists
+      } catch (err) {
+        alert(`Failed to enroll: ${err.message}`);
+      }
+    });
+  });
 }
 
 // Chart

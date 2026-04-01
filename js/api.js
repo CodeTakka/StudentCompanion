@@ -134,6 +134,10 @@ async function apiDeleteCourse(id) {
   return apiFetch(`/courses/${id}`, { method: "DELETE" });
 }
 
+async function apiEnrollCourse(id) {
+  return apiFetch(`/courses/${id}/enroll`, { method: "POST" });
+}
+
 // Assessments
 
 async function apiGetAssessments(courseId) {
