@@ -1,25 +1,28 @@
 let selectedCourseId = null;
+let selectedStudentId = null;
 let gradingAssessmentId = null;
 
-async function loadCourseSelector() {
-  const select = document.getElementById("courseSelect");
+async function loadStudents() {
+  const select = document.getElementById("studentSelect");
+  select.innerHTML = '<option value="">— choose a student —</option>';
   try {
-    const courses = await apiGetCourses();
-    courses.forEach((c) => {
+    const course = await apiGetCourse(selectedCourseId);
+    course.students.forEach(async (studentId) => {
+      const user = await apiGetUser(studentId);
       const opt = document.createElement("option");
-      opt.value = c._id;
-      opt.textContent = `${c.code} — ${c.name}`;
+      opt.value = studentId;
+      opt.textContent = user.username;
       select.appendChild(opt);
     });
   } catch (err) {
-    console.error("Failed to load courses:", err);
+    console.error("Failed to load students:", err);
   }
 }
 
-document.getElementById("courseSelect").addEventListener("change", function () {
-  selectedCourseId = this.value;
+document.getElementById("studentSelect").addEventListener("change", function () {
+  selectedStudentId = this.value;
   const panel = document.getElementById("gradesPanel");
-  if (selectedCourseId) {
+  if (selectedStudentId) {
     panel.style.display = "block";
     loadGrades();
   } else {
@@ -33,17 +36,15 @@ async function loadGrades() {
   tbody.innerHTML =
     '<tr><td colspan="5" style="text-align:center;color:#888">Loading…</td></tr>';
   try {
-    const [assessments, avgData] = await Promise.all([
-      apiGetAssessments(selectedCourseId),
-      apiGetCourseAverage(selectedCourseId),
-    ]);
+    const assessments = await apiGetAssessments(selectedCourseId);
+    const studentAssessments = assessments.filter(a => a.studentId === selectedStudentId);
 
     // If the earnedMarks of an assignment is null or undefined, it sets it as null
-    if (!assessments.length) {
+    if (!studentAssessments.length) {
       tbody.innerHTML =
         '<tr><td colspan="5" style="text-align:center;color:#888">No assessments yet.</td></tr>';
     } else {
-      tbody.innerHTML = assessments
+      tbody.innerHTML = studentAssessments
         .map(
           (a) => `
         <tr>
@@ -63,6 +64,7 @@ async function loadGrades() {
         .join("");
     }
 
+    const avgData = await apiGetCourseAverage(selectedCourseId, selectedStudentId);
     const avg = avgData.average;
     document.getElementById("courseAverage").textContent = avg ?? "—";
   } catch (err) {

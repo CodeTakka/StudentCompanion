@@ -106,12 +106,17 @@ async function apiGetCourses() {
   return apiFetch("/courses");
 }
 
+async function apiGetAllCourses() {
+  return apiFetch("/courses?all=true");
+}
+
 async function apiGetCourse(id) {
   return apiFetch(`/courses/${id}`);
 }
 
-async function apiGetCourseAverage(id) {
-  return apiFetch(`/courses/${id}/average`);
+async function apiGetCourseAverage(id, studentId = null) {
+  const query = studentId ? `?studentId=${studentId}` : '';
+  return apiFetch(`/courses/${id}/average${query}`);
 }
 
 async function apiCreateCourse(data) {
@@ -165,4 +170,8 @@ async function apiGetStats() {
 
 async function apiGetTemplates() {
   return apiFetch("/admin/templates");
+}
+
+async function apiGetUser(id) {
+  return apiFetch(`/admin/users/${id}`);
 }

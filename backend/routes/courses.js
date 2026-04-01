@@ -2,16 +2,26 @@ const express = require('express');
 const router = express.Router();
 const Course = require('../models/Course');
 const Assessment = require('../models/Assessment');
+const CourseTemplate = require('../models/CourseTemplate');
 const { protect, adminOnly } = require('../middleware/auth');
 
 // All course routes require login
 router.use(protect);
 
-// GET /api/courses
-// Students see only their own courses; admins see all
+// GET /api/courses?all=true
+// Students see enabled courses; admins see all; ?all=true shows all enabled for students
 router.get('/', async (req, res) => {
   try {
-    const filter = req.user.role === 'admin' ? {} : { createdBy: req.user.id };
+    const { all } = req.query;
+    let filter = {};
+    if (req.user.role === 'admin') {
+      filter = {};
+    } else {
+      filter = { enabled: true };
+      if (!all) {
+        filter.students = req.user.id;
+      }
+    }
     const courses = await Course.find(filter).sort({ createdAt: -1 });
     res.json(courses);
   } catch (err) {
@@ -20,14 +30,14 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/courses/:id
-// Students can only access their own course
+// Students can access enabled courses; admins can access any
 router.get('/:id', async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
     if (!course) return res.status(404).json({ message: 'Course not found.' });
 
-    // Students can only see their own courses
-    if (req.user.role === 'student' && course.createdBy.toString() !== req.user.id) {
+    // Students can only see enabled courses
+    if (req.user.role === 'student' && !course.enabled) {
       return res.status(403).json({ message: 'Access denied.' });
     }
 
@@ -37,18 +47,21 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// GET /api/courses/:id/average
+// GET /api/courses/:id/average?studentId=...
 // Server-side weighted average calculation (required by rubric)
 router.get('/:id/average', async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
     if (!course) return res.status(404).json({ message: 'Course not found.' });
 
-    if (req.user.role === 'student' && course.createdBy.toString() !== req.user.id) {
+    if (req.user.role === 'student' && !course.enabled) {
       return res.status(403).json({ message: 'Access denied.' });
     }
 
-    const assessments = await Assessment.find({ courseId: req.params.id });
+    const { studentId } = req.query;
+    const filter = studentId ? { courseId: req.params.id, studentId } : { courseId: req.params.id };
+
+    const assessments = await Assessment.find(filter);
 
     // Only include graded assessments in the average
     const graded = assessments.filter(
@@ -104,16 +117,52 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /api/courses/:id
-// Students can only edit their own courses
-router.put('/:id', async (req, res) => {
+// Students can enroll in enabled courses
+router.post('/:id/enroll', async (req, res) => {
   try {
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ message: 'Only students can enroll.' });
+    }
+
     const course = await Course.findById(req.params.id);
     if (!course) return res.status(404).json({ message: 'Course not found.' });
 
-    if (req.user.role === 'student' && course.createdBy.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Access denied.' });
+    if (!course.enabled) {
+      return res.status(400).json({ message: 'Course is not available for enrollment.' });
     }
+
+    if (course.students.includes(req.user.id)) {
+      return res.status(400).json({ message: 'Already enrolled in this course.' });
+    }
+
+    course.students.push(req.user.id);
+    await course.save();
+
+    // Create assessments for the student
+    const template = await CourseTemplate.findOne({ code: course.code });
+    if (template) {
+      const assessments = template.assessments.map(a => ({
+        courseId: course._id,
+        studentId: req.user.id,
+        name: a.name,
+        type: a.type,
+        weight: a.weight
+      }));
+      await Assessment.insertMany(assessments);
+    }
+
+    res.json({ message: 'Enrolled successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to enroll.' });
+  }
+});
+
+// PUT /api/courses/:id
+// Only admins can edit courses
+router.put('/:id', adminOnly, async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+    if (!course) return res.status(404).json({ message: 'Course not found.' });
 
     const { code, name, instructor, term, description, enabled } = req.body;
 
@@ -132,15 +181,11 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/courses/:id
-// Delete a course and all its assessments
-router.delete('/:id', async (req, res) => {
+// Only admins can delete courses
+router.delete('/:id', adminOnly, async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
     if (!course) return res.status(404).json({ message: 'Course not found.' });
-
-    if (req.user.role === 'student' && course.createdBy.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Access denied.' });
-    }
 
     // Delete all assessments belonging to this course first
     await Assessment.deleteMany({ courseId: req.params.id });

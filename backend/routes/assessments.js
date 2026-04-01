@@ -6,18 +6,18 @@ const { protect, adminOnly } = require("../middleware/auth");
 
 router.use(protect);
 
-// Helper method to verify that the requesting student owns the parent course
+// Helper method to verify that the requesting user has access to the course
 const verifyAccess = async (courseId, userId, role) => {
   const course = await Course.findById(courseId);
   if (!course) return { error: "Course not found.", status: 404 };
-  if (role === "student" && course.createdBy.toString() !== userId) {
+  if (role === "student" && !course.enabled) {
     return { error: "Access denied.", status: 403 };
   }
   return { course };
 };
 
 // GET /api/assessments?courseId=...
-// Get all assessments for a course
+// Get all assessments for a course (for students, their own; for admins, all)
 router.get("/", async (req, res) => {
   try {
     const { courseId } = req.query;
@@ -30,7 +30,8 @@ router.get("/", async (req, res) => {
     if (access.error)
       return res.status(access.status).json({ message: access.error });
 
-    const assessments = await Assessment.find({ courseId }).sort({
+    const filter = req.user.role === 'admin' ? { courseId } : { courseId, studentId: req.user.id };
+    const assessments = await Assessment.find(filter).sort({
       dueDate: 1,
     });
     res.json(assessments);
@@ -85,8 +86,8 @@ router.get("/:id", async (req, res) => {
 });
 
 // POST /api/assessments
-// Create a new assessment for a course
-router.post("/", async (req, res) => {
+// Create a new assessment for a course (admins only)
+router.post("/", adminOnly, async (req, res) => {
   try {
     const { courseId, name, type, weight, dueDate, visible, totalMarks } =
       req.body;
@@ -97,9 +98,8 @@ router.post("/", async (req, res) => {
         .json({ message: "courseId, name, type, and weight are required." });
     }
 
-    const access = await verifyAccess(courseId, req.user.id, req.user.role);
-    if (access.error)
-      return res.status(access.status).json({ message: access.error });
+    const course = await Course.findById(courseId);
+    if (!course) return res.status(404).json({ message: 'Course not found.' });
 
     // Convert weight from percentage to decimal if user sent e.g. 25 instead of 0.25
     const weightDecimal = weight > 1 ? weight / 100 : weight;
@@ -110,24 +110,27 @@ router.post("/", async (req, res) => {
         .json({ message: "Weight must be between 0 and 100 (%)." });
     }
 
-    const assessment = await Assessment.create({
+    // Create assessment for each enrolled student
+    const assessments = course.students.map(studentId => ({
       courseId,
+      studentId,
       name,
       type,
       weight: weightDecimal,
       dueDate: dueDate || null,
       visible: visible !== undefined ? visible : true,
       totalMarks: totalMarks || null,
-    });
+    }));
 
-    res.status(201).json(assessment);
+    const created = await Assessment.insertMany(assessments);
+    res.status(201).json(created);
   } catch (err) {
     res.status(500).json({ message: "Failed to create assessment." });
   }
 });
 
 // PUT /api/assessments/:id
-// Update an assessment (includes marking completed and entering grades)
+// Update an assessment (students can update their own, admins can update any)
 router.put("/:id", async (req, res) => {
   try {
     const assessment = await Assessment.findById(req.params.id);
@@ -142,6 +145,11 @@ router.put("/:id", async (req, res) => {
     if (access.error)
       return res.status(access.status).json({ message: access.error });
 
+    // Students can only update their own assessments
+    if (req.user.role === 'student' && assessment.studentId.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
+
     const {
       name,
       type,
@@ -153,28 +161,34 @@ router.put("/:id", async (req, res) => {
       totalMarks,
     } = req.body;
 
-    if (name !== undefined) assessment.name = name;
-    if (type !== undefined) assessment.type = type;
-    if (dueDate !== undefined) assessment.dueDate = dueDate;
-    if (visible !== undefined) assessment.visible = visible;
-    if (completed !== undefined) assessment.completed = completed;
-    if (totalMarks !== undefined) assessment.totalMarks = totalMarks;
+    // Students can only update completed
+    if (req.user.role === 'student') {
+      if (completed !== undefined) assessment.completed = completed;
+    } else {
+      // Admins can update everything
+      if (name !== undefined) assessment.name = name;
+      if (type !== undefined) assessment.type = type;
+      if (dueDate !== undefined) assessment.dueDate = dueDate;
+      if (visible !== undefined) assessment.visible = visible;
+      if (completed !== undefined) assessment.completed = completed;
+      if (totalMarks !== undefined) assessment.totalMarks = totalMarks;
 
-    if (weight !== undefined) {
-      const weightDecimal = weight > 1 ? weight / 100 : weight;
-      assessment.weight = weightDecimal;
-    }
-
-    // Validate earned marks don't exceed total marks
-    if (earnedMarks !== undefined) {
-      const total =
-        totalMarks !== undefined ? totalMarks : assessment.totalMarks;
-      if (total !== null && earnedMarks > total) {
-        return res
-          .status(400)
-          .json({ message: "Earned marks cannot exceed total marks." });
+      if (weight !== undefined) {
+        const weightDecimal = weight > 1 ? weight / 100 : weight;
+        assessment.weight = weightDecimal;
       }
-      assessment.earnedMarks = earnedMarks;
+
+      // Validate earned marks don't exceed total marks
+      if (earnedMarks !== undefined) {
+        const total =
+          totalMarks !== undefined ? totalMarks : assessment.totalMarks;
+        if (total !== null && earnedMarks > total) {
+          return res
+            .status(400)
+            .json({ message: "Earned marks cannot exceed total marks." });
+        }
+        assessment.earnedMarks = earnedMarks;
+      }
     }
 
     await assessment.save();
@@ -185,19 +199,11 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE /api/assessments/:id
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", adminOnly, async (req, res) => {
   try {
     const assessment = await Assessment.findById(req.params.id);
     if (!assessment)
       return res.status(404).json({ message: "Assessment not found." });
-
-    const access = await verifyAccess(
-      assessment.courseId,
-      req.user.id,
-      req.user.role,
-    );
-    if (access.error)
-      return res.status(access.status).json({ message: access.error });
 
     await assessment.deleteOne();
     res.json({ message: "Assessment deleted." });
