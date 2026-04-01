@@ -2,18 +2,47 @@ let selectedCourseId = null;
 let selectedStudentId = null;
 let gradingAssessmentId = null;
 
+// Course selector
+async function loadCourseSelector() {
+  const select = document.getElementById('courseSelect');
+  try {
+    const courses = await apiGetCourses();
+    courses.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value       = c._id;
+      opt.textContent = `${c.code} — ${c.name}`;
+      select.appendChild(opt);
+    });
+  } catch (err) {
+    console.error('Failed to load courses:', err);
+  }
+}
+
+document.getElementById('courseSelect').addEventListener('change', function () {
+  selectedCourseId = this.value;
+  const panel = document.getElementById('studentPanel');
+  if (selectedCourseId) {
+    panel.style.display = 'block';
+    loadStudents();
+  } else {
+    panel.style.display = 'none';
+    document.getElementById('gradesPanel').style.display = 'none';
+  }
+  hideGradeForm();
+});
+
 async function loadStudents() {
   const select = document.getElementById("studentSelect");
   select.innerHTML = '<option value="">— choose a student —</option>';
   try {
     const course = await apiGetCourse(selectedCourseId);
-    course.students.forEach(async (studentId) => {
+    for (const studentId of course.students) {
       const user = await apiGetUser(studentId);
       const opt = document.createElement("option");
       opt.value = studentId;
       opt.textContent = user.username;
       select.appendChild(opt);
-    });
+    }
   } catch (err) {
     console.error("Failed to load students:", err);
   }

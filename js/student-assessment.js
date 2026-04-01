@@ -25,12 +25,12 @@ function statusBadge(a) {
   return '<span class="status comingup">Coming up</span>';
 }
 
-async function loadAssessments() {
+async function loadAssessments(courseIdParam = courseId) {
   const tbody = document.getElementById("assessmentTableBody");
   try {
     const [course, assessments] = await Promise.all([
-      apiGetCourse(courseId),
-      apiGetAssessments(courseId),
+      apiGetCourse(courseIdParam),
+      apiGetAssessments(courseIdParam),
     ]);
 
     document.getElementById("pageTitle").textContent =
