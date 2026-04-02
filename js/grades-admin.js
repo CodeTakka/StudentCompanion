@@ -83,7 +83,7 @@ async function loadGrades() {
           <td>${Math.round(a.weight * 100)}%</td>
           <td>
             <button class="btn small"
-                onclick="openGradeForm('${a._id}', '${a.name}', ${a.earnedMarks ?? "null"}, ${a.totalMarks ?? "null"})">
+                onclick="openGradeForm('${a._id}', '${a.name}', ${a.earnedMarks ?? "null"}, ${a.totalMarks ?? "null"}, '${selectedStudentId}')">
               ${a.earnedMarks !== null ? "Edit" : "Enter Grade"}
             </button>
           </td>
@@ -101,7 +101,7 @@ async function loadGrades() {
   }
 }
 
-window.openGradeForm = async function (id, name, earned, total) {
+window.openGradeForm = async function (id, name, earned, total, studentId) {
   gradingAssessmentId = id;
   const nameEl = document.getElementById("gradeAssessmentName");
   const earnedEl = document.getElementById("gEarned");
@@ -120,21 +120,21 @@ window.openGradeForm = async function (id, name, earned, total) {
 
   // Fetch submission if it exists
   try {
-    const submissions = await apiGetSubmissions(id);
+    const submissions = await apiGetSubmissions(id, studentId);
     if (submissions.length > 0) {
       const latest = submissions[0];
       submissionViewer.style.display = "block";
-      
+
       const submittedTime = new Date(latest.submittedAt).toLocaleString();
       const lateFlag = latest.isLate ? ' <span class="late-flag">LATE</span>' : '';
-      
+
       submissionInfo.innerHTML = `
         <p><span class="submission-label">File:</span> ${latest.fileName}</p>
         <p><span class="submission-label">Submitted:</span> ${submittedTime}${lateFlag}</p>
       `;
-      
+
       submissionActions.innerHTML = `
-        <a href="/api/submissions/${latest._id}/download" target="_blank" download>⬇ Download File</a>
+        <a href="/api/submissions/${latest._id}/download" target="_blank">⬇ Download File</a>
       `;
     } else {
       submissionViewer.style.display = "none";

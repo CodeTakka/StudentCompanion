@@ -140,8 +140,8 @@ async function apiEnrollCourse(id) {
 
 // Assessments
 
-async function apiGetAssessments(courseId) {
-  return apiFetch(`/assessments?courseId=${courseId}`);
+async function apiGetAssessments(courseId = null) {
+  return apiFetch(courseId ? `/assessments?courseId=${courseId}` : '/assessments');
 }
 
 async function apiGetUpcomingAssessments() {

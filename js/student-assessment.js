@@ -1,14 +1,33 @@
 // student-assessment.js — student assessment view with submission capability
 
 const params = new URLSearchParams(window.location.search);
-const courseId = params.get("courseId");
+const initialCourseId = params.get("courseId");
+const courseFilter = document.getElementById("courseFilter");
+const tbody = document.getElementById("assessmentTableBody");
+let allAssessments = [];
 let currentAssessmentId = null;
 
-if (courseId) {
-  loadAssessments(courseId);
-} else {
-  console.log("No course selected yet.");
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, s => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[s]);
 }
+
+async function initAssessments() {
+  try {
+    const courses = await apiGetCourses();
+    const options = ['<option value="all">All courses</option>', ...courses.map(c => `<option value="${c._id}">${escapeHtml(c.code)} — ${escapeHtml(c.name)}</option>` )];
+    courseFilter.innerHTML = options.join('');
+
+    if (initialCourseId && courses.some(c => c._id === initialCourseId)) {
+      courseFilter.value = initialCourseId;
+    }
+
+    courseFilter.addEventListener('change', renderAssessments);
+    await loadAssessments();
+  } catch (err) {
+    if (tbody) { tbody.innerHTML = `<tr><td colspan="7" style="color:#c0392b">${escapeHtml(err.message)}</td></tr>`; }
+  }
+}
+
 
 function formatDate(iso) {
   if (!iso) return "—";
@@ -21,73 +40,68 @@ function formatDate(iso) {
 
 function statusBadge(a) {
   if (a.earnedMarks !== null) return '<span class="status done">Graded</span>';
-  if (a.dueDate && new Date(a.dueDate) < new Date())
-    return '<span class="status done">Past Due</span>';
-  return '<span class="status comingup">Coming up</span>';
+  if (a.completed) return '<span class="status submitted">Submitted</span>';
+  if (a.dueDate && new Date(a.dueDate) < new Date()) return '<span class="status overdue">Overdue</span>';
+  return '<span class="status comingup">Upcoming</span>';
 }
 
-async function loadAssessments(courseIdParam = courseId) {
-  const tbody = document.getElementById("assessmentTableBody");
+function rowClass(a) {
+  if (!a.completed && a.dueDate && new Date(a.dueDate) < new Date()) return 'overdue-row';
+  return '';
+}
+
+async function loadAssessments() {
   try {
-    const [course, assessments] = await Promise.all([
-      apiGetCourse(courseIdParam),
-      apiGetAssessments(courseIdParam),
-    ]);
-
-    document.getElementById("pageTitle").textContent =
-      `${course.code} — Assessments`;
-
-    if (!assessments.length) {
-      tbody.innerHTML =
-        '<tr><td colspan="7" style="text-align:center;color:#888">No assessments yet.</td></tr>';
-      return;
-    }
-
-    // For each assessment, fetch its submission status
-    const rows = await Promise.all(assessments.map(async (a) => {
-      let submissionStatus = "Not submitted";
-      let submissionClass = "";
-      
-      try {
-        const submissions = await apiGetSubmissions(a._id);
-        if (submissions.length > 0) {
-          const latest = submissions[0];
-          submissionStatus = latest.isLate 
-            ? `Submitted late (${formatDate(latest.submittedAt)})`
-            : `Submitted (${formatDate(latest.submittedAt)})`;
-          submissionClass = latest.isLate ? "late" : "submitted";
-        }
-      } catch (err) {
-        // No submission yet, keep default
-      }
-
-      return `
-        <tr>
-          <td>${a.name}</td>
-          <td>${a.type}</td>
-          <td>${formatDate(a.dueDate)}</td>
-          <td>${a.earnedMarks !== null ? `${a.earnedMarks} / ${a.totalMarks ?? "?"}` : "Not graded"}</td>
-          <td>${Math.round(a.weight * 100)}%</td>
-          <td>${statusBadge(a)}</td>
-          <td>
-            <button class="btn small" onclick="openSubmissionModal('${a._id}', '${a.name}', '${formatDate(a.dueDate)}', ${a.totalMarks})">
-              ${a.earnedMarks !== null ? "View" : "Submit"}
-            </button>
-            <div style="font-size: 12px; margin-top: 5px; color: #666;">
-              ${submissionStatus}
-            </div>
-          </td>
-        </tr>
-      `;
-    }));
-
-    tbody.innerHTML = rows.join("");
+    allAssessments = await apiGetAssessments();
+    renderAssessments();
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="7" style="color:#c0392b">${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="color:#c0392b">${escapeHtml(err.message)}</td></tr>`;
   }
 }
 
-window.openSubmissionModal = function (assessmentId, name, dueDate, totalMarks) {
+function renderAssessments() {
+  const selectedCourse = courseFilter.value;
+  const filtered = selectedCourse === 'all'
+    ? allAssessments
+    : allAssessments.filter(a => a.courseId && a.courseId._id === selectedCourse);
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888">No assessments yet.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(a => {
+    const dueDate = formatDate(a.dueDate);
+    const courseInfo = a.courseId ? `${escapeHtml(a.courseId.code)} — ${escapeHtml(a.courseId.name)}` : 'Unknown';
+    const gradeText = a.earnedMarks !== null ? `${a.earnedMarks} / ${a.totalMarks ?? '?'} ` : 'Not graded';
+    const actionLabel = a.completed ? 'Resubmit' : 'Submit';
+    const escapedName = escapeHtml(a.name).replace(/'/g, "\\'");
+
+    return `
+      <tr class="${rowClass(a)}">
+        <td>${escapeHtml(a.name)}</td>
+        <td>${escapeHtml(a.type)}</td>
+        <td>${dueDate}</td>
+        <td>${gradeText}</td>
+        <td>${Math.round((a.weight || 0) * 100)}%</td>
+        <td>${statusBadge(a)}</td>
+        <td>
+          <button class="btn small" onclick="openSubmissionModal('${a._id}', '${escapedName}', '${dueDate}', ${a.totalMarks || 'null'}, ${a.completed})">${actionLabel}</button>
+          <div style="font-size: 12px; margin-top: 5px; color: #666;">${a.completed ? 'Submitted' : 'Not submitted'}</div>
+          <div style="font-size: 12px; color: #999;">${courseInfo}</div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+if (courseFilter) {
+  courseFilter.addEventListener('change', renderAssessments);
+}
+
+initAssessments();
+
+window.openSubmissionModal = function (assessmentId, name, dueDate, totalMarks, completed) {
   currentAssessmentId = assessmentId;
   const modal = document.getElementById("submissionModal");
   const detailsDiv = document.getElementById("assessmentDetails");
@@ -108,6 +122,11 @@ window.openSubmissionModal = function (assessmentId, name, dueDate, totalMarks) 
   // Show form
   form.style.display = 'block';
   form.reset();
+
+  if (completed === 'true' || completed === true) {
+    statusDiv.textContent = 'This assessment has already been submitted. Uploading again will resubmit.';
+    statusDiv.className = 'submission-status info';
+  }
   
   // Show modal
   modal.classList.remove('hidden');
@@ -184,15 +203,6 @@ document.getElementById("submissionModal").addEventListener("click", function (e
   }
 });
 
-// If courseId exists and it isn't null, load the assessments
-if (courseId && courseId !== "null") {
-  loadAssessments();
-} else {
-  console.log("No course selected yet.");
-  const tbody = document.getElementById("assessmentTableBody");
-  if (tbody) {
-    tbody.innerHTML =
-      '<tr><td colspan="7" style="text-align:center;color:#888">Please select a course from the dashboard.</td></tr>';
-  }
-}
+// Initialize page
+initAssessments();
 

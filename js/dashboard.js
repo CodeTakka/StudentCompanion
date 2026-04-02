@@ -83,8 +83,9 @@ async function renderStats(courses) {
     return;
   }
 
+  const userId = getUser()?.id || null;
   const averages = await Promise.all(
-    courses.map(c => apiGetCourseAverage(c._id).catch(() => ({ average: null })))
+    courses.map(c => apiGetCourseAverage(c._id, userId).catch(() => ({ average: null })))
   );
 
   // Removes any null average
@@ -115,11 +116,14 @@ function renderSnapshot(courses) {
           <div class="course-meta">${escapeHtml(c.term || '')} • ${escapeHtml(c.instructor || '')}</div>
         </div>
       </div>
+      <div class="course-actions" style="margin-top:8px;">
+        <a class="btn primary" href="course-info.html?courseId=${c._id}">View Course</a>
+      </div>
     </div>
   `).join('');
 
   const viewBtn = document.getElementById('viewCourseBtn');
-  if (viewBtn) viewBtn.href = `course-info.html?courseId=${courses[0]._id}`;
+  if (viewBtn) viewBtn.style.display = 'none';
 }
 
 function renderAvailableCourses(courses) {

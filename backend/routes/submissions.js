@@ -65,8 +65,8 @@ router.post('/', upload.single('file'), async (req, res) => {
 
     await submission.save();
 
-    // Update assessment status to pending grading
-    assessment.status = 'pending';
+    // Mark assessment as submitted (completed) for this student
+    assessment.completed = true;
     await assessment.save();
 
     res.status(201).json({
@@ -97,18 +97,10 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ message: 'assessmentId query param required.' });
     }
 
-    // If studentId not provided, use authenticated user's ID
-    const queryStudentId = studentId || req.user.id;
-
     // Verify assessment exists
     const assessment = await Assessment.findById(assessmentId);
     if (!assessment) {
       return res.status(404).json({ message: 'Assessment not found.' });
-    }
-
-    // Verify access
-    if (req.user.role === 'student' && queryStudentId !== req.user.id) {
-      return res.status(403).json({ message: 'Access denied.' });
     }
 
     const access = await verifyAccess(assessment.courseId, req.user.id, req.user.role);
@@ -116,11 +108,17 @@ router.get('/', async (req, res) => {
       return res.status(access.status).json({ message: access.error });
     }
 
-    // Fetch submissions
-    const submissions = await Submission.find({
-      assessmentId,
-      studentId: queryStudentId
-    }).sort({ submittedAt: -1 });
+    const query = { assessmentId };
+
+    if (req.user.role === 'student') {
+      // Students can only see their own submissions
+      query.studentId = req.user.id;
+    } else if (studentId) {
+      // Admins can query specific student
+      query.studentId = studentId;
+    }
+
+    const submissions = await Submission.find(query).sort({ submittedAt: -1 });
 
     res.json(submissions);
   } catch (err) {

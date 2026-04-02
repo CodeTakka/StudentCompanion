@@ -21,19 +21,25 @@ const verifyAccess = async (courseId, userId, role) => {
 router.get("/", async (req, res) => {
   try {
     const { courseId } = req.query;
-    if (!courseId)
-      return res
-        .status(400)
-        .json({ message: "courseId query param required." });
+    const now = new Date();
+    let filter = {};
 
-    const access = await verifyAccess(courseId, req.user.id, req.user.role);
-    if (access.error)
-      return res.status(access.status).json({ message: access.error });
+    if (courseId) {
+      const access = await verifyAccess(courseId, req.user.id, req.user.role);
+      if (access.error)
+        return res.status(access.status).json({ message: access.error });
 
-    const filter = req.user.role === 'admin' ? { courseId } : { courseId, studentId: req.user.id };
-    const assessments = await Assessment.find(filter).sort({
-      dueDate: 1,
-    });
+      filter.courseId = courseId;
+    }
+
+    if (req.user.role === 'student') {
+      filter.studentId = req.user.id;
+    }
+
+    const assessments = await Assessment.find(filter)
+      .populate('courseId', 'code name')
+      .sort({ dueDate: 1 });
+
     res.json(assessments);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch assessments." });
@@ -44,17 +50,18 @@ router.get("/", async (req, res) => {
 // Get all upcoming assessments across all of the student's courses
 router.get("/upcoming", async (req, res) => {
   try {
-    const filter = req.user.role === "admin" ? {} : { createdBy: req.user.id };
-    const courses = await Course.find(filter);
-    const courseIds = courses.map((c) => c._id);
-
     const now = new Date();
-    const assessments = await Assessment.find({
-      courseId: { $in: courseIds },
+    let filter = {
       dueDate: { $gte: now },
       completed: false,
-    })
-      .populate("courseId", "code name")
+    };
+
+    if (req.user.role === 'student') {
+      filter.studentId = req.user.id;
+    }
+
+    const assessments = await Assessment.find(filter)
+      .populate('courseId', 'code name')
       .sort({ dueDate: 1 })
       .limit(20);
 

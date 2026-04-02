@@ -27,9 +27,20 @@
   background: #e6f4ea;
   color: #1b7f3b;
 }
+.status.submitted {
+  background: #d9edf7;
+  color: #31708f;
+}
+.status.overdue {
+  background: #f8d7da;
+  color: #721c24;
+}
 .status.comingup {
   background: #b26a00;
   color: #ddd;
+}
+.overdue-row {
+  background: #fde4e4;
 }
 .table-actions {
   margin-bottom: 12px;
