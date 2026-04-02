@@ -30,7 +30,7 @@ router.post('/', upload.single('file'), async (req, res) => {
       return res.status(400).json({ message: 'assessmentId and file are required.' });
     }
 
-    // Verify assessment exists and student has access
+    // Verify assessment exists
     const assessment = await Assessment.findById(assessmentId);
     if (!assessment) {
       // Clean up uploaded file if assessment not found
@@ -38,13 +38,7 @@ router.post('/', upload.single('file'), async (req, res) => {
       return res.status(404).json({ message: 'Assessment not found.' });
     }
 
-    // Verify student is submitting for their own assessment
-    if (assessment.studentId.toString() !== req.user.id) {
-      fs.unlinkSync(req.file.path);
-      return res.status(403).json({ message: 'Access denied.' });
-    }
-
-    // Verify course access
+    // Verify student is enrolled in the course
     const access = await verifyAccess(assessment.courseId, req.user.id, req.user.role);
     if (access.error) {
       fs.unlinkSync(req.file.path);
@@ -64,10 +58,6 @@ router.post('/', upload.single('file'), async (req, res) => {
     });
 
     await submission.save();
-
-    // Mark assessment as submitted (completed) for this student
-    assessment.completed = true;
-    await assessment.save();
 
     res.status(201).json({
       message: 'File submitted successfully.',
@@ -155,7 +145,7 @@ router.get('/assessment/:assessmentId/all', adminOnly, async (req, res) => {
 });
 
 // PUT /api/submissions/:id
-// Admin updates submission status after grading
+// Admin updates submission grading (earnedMarks, feedback) after grading
 router.put('/:id', adminOnly, async (req, res) => {
   try {
     const submission = await Submission.findById(req.params.id);
@@ -174,9 +164,20 @@ router.put('/:id', adminOnly, async (req, res) => {
       return res.status(access.status).json({ message: access.error });
     }
 
-    // Update submission status
+    // Update submission grading fields
     if (req.body.status !== undefined) {
       submission.status = req.body.status;
+    }
+    if (req.body.earnedMarks !== undefined) {
+      // Validate earned marks don't exceed total marks
+      if (assessment.totalMarks !== null && req.body.earnedMarks > assessment.totalMarks) {
+        return res.status(400).json({ message: "Earned marks cannot exceed total marks." });
+      }
+      submission.earnedMarks = req.body.earnedMarks;
+      submission.status = 'graded'; // Auto-set to graded when marks are entered
+    }
+    if (req.body.feedback !== undefined) {
+      submission.feedback = req.body.feedback;
     }
 
     await submission.save();

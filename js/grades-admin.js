@@ -1,6 +1,7 @@
 let selectedCourseId = null;
 let selectedStudentId = null;
 let gradingAssessmentId = null;
+let gradingSubmissionId = null;
 
 // Course selector
 async function loadCourseSelector() {
@@ -65,30 +66,48 @@ async function loadGrades() {
   tbody.innerHTML =
     '<tr><td colspan="5" style="text-align:center;color:#888">Loading…</td></tr>';
   try {
+    // Fetch all assessments for the course
     const assessments = await apiGetAssessments(selectedCourseId);
-    const studentAssessments = assessments.filter(a => a.studentId === selectedStudentId);
 
-    // If the earnedMarks of an assignment is null or undefined, it sets it as null
-    if (!studentAssessments.length) {
+    if (!assessments.length) {
       tbody.innerHTML =
         '<tr><td colspan="5" style="text-align:center;color:#888">No assessments yet.</td></tr>';
     } else {
-      tbody.innerHTML = studentAssessments
+      // Fetch submissions for this student to get their grades
+      const submissionsByAssessment = {};
+      for (const a of assessments) {
+        try {
+          const subs = await apiGetSubmissions(a._id, selectedStudentId);
+          if (subs.length > 0) {
+            submissionsByAssessment[a._id] = subs[0]; // Get latest submission
+          }
+        } catch (err) {
+          // Ignore errors
+        }
+      }
+
+      tbody.innerHTML = assessments
         .map(
-          (a) => `
-        <tr>
-          <td>${a.name} <small>(${a.type})</small></td>
-          <td>${a.earnedMarks !== null ? a.earnedMarks : "<em>—</em>"}</td>
-          <td>${a.totalMarks !== null ? a.totalMarks : "—"}</td>
-          <td>${Math.round(a.weight * 100)}%</td>
-          <td>
-            <button class="btn small"
-                onclick="openGradeForm('${a._id}', '${a.name}', ${a.earnedMarks ?? "null"}, ${a.totalMarks ?? "null"}, '${selectedStudentId}')">
-              ${a.earnedMarks !== null ? "Edit" : "Enter Grade"}
-            </button>
-          </td>
-        </tr>
-      `,
+          (a) => {
+            const submission = submissionsByAssessment[a._id];
+            const earnedMarks = submission && submission.earnedMarks !== null ? submission.earnedMarks : null;
+            const submissionId = submission ? submission._id : null;
+
+            return `
+              <tr>
+                <td>${a.name} <small>(${a.type})</small></td>
+                <td>${earnedMarks !== null ? earnedMarks : "<em>—</em>"}</td>
+                <td>${a.totalMarks !== null ? a.totalMarks : "—"}</td>
+                <td>${Math.round(a.weight * 100)}%</td>
+                <td>
+                  <button class="btn small"
+                      onclick="openGradeForm('${a._id}', '${a.name}', ${earnedMarks ?? "null"}, ${a.totalMarks ?? "null"}, '${selectedStudentId}', '${submissionId}')">
+                    ${earnedMarks !== null ? "Edit" : "Enter Grade"}
+                  </button>
+                </td>
+              </tr>
+            `;
+          }
         )
         .join("");
     }
@@ -101,8 +120,9 @@ async function loadGrades() {
   }
 }
 
-window.openGradeForm = async function (id, name, earned, total, studentId) {
+window.openGradeForm = async function (id, name, earned, total, studentId, submissionId) {
   gradingAssessmentId = id;
+  gradingSubmissionId = submissionId || null; // Store submission ID for grading
   const nameEl = document.getElementById("gradeAssessmentName");
   const earnedEl = document.getElementById("gEarned");
   const totalEl = document.getElementById("gTotal");
@@ -123,6 +143,7 @@ window.openGradeForm = async function (id, name, earned, total, studentId) {
     const submissions = await apiGetSubmissions(id, studentId);
     if (submissions.length > 0) {
       const latest = submissions[0];
+      gradingSubmissionId = latest._id; // Update with fetched submission ID
       submissionViewer.style.display = "block";
 
       const submittedTime = new Date(latest.submittedAt).toLocaleString();
@@ -134,8 +155,13 @@ window.openGradeForm = async function (id, name, earned, total, studentId) {
       `;
 
       submissionActions.innerHTML = `
-        <a href="/api/submissions/${latest._id}/download" target="_blank">⬇ Download File</a>
+        <button class="btn small" onclick="window.downloadSubmissionFile('${latest._id}')">⬇ Download File</button>
       `;
+      
+      // Load existing feedback if any
+      if (latest.feedback) {
+        feedbackEl.value = latest.feedback;
+      }
     } else {
       submissionViewer.style.display = "none";
     }
@@ -182,15 +208,25 @@ window.submitGradeForm = async function () {
   }
 
   try {
-    const updateData = {
-      earnedMarks: earned,
-      totalMarks: total,
-    };
-    if (feedback) {
-      updateData.feedback = feedback;
+    // If we have a submission, update it (per-student grading)
+    if (gradingSubmissionId) {
+      const updateData = {
+        earnedMarks: earned,
+        feedback: feedback || null,
+      };
+      await apiUpdateSubmission(gradingSubmissionId, updateData);
+    } else {
+      // Fallback to assessment update if no submission exists
+      const updateData = {
+        earnedMarks: earned,
+        totalMarks: total,
+      };
+      if (feedback) {
+        updateData.feedback = feedback;
+      }
+      await apiUpdateAssessment(gradingAssessmentId, updateData);
     }
     
-    await apiUpdateAssessment(gradingAssessmentId, updateData);
     hideGradeForm();
     loadGrades();
   } catch (err) {

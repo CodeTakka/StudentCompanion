@@ -17,7 +17,9 @@ const verifyAccess = async (courseId, userId, role) => {
 };
 
 // GET /api/assessments?courseId=...
-// Get all assessments for a course (for students, their own; for admins, all)
+// Get all assessments for a course
+// For students: only returns if they're enrolled in the course
+// For admins: returns all for the course
 router.get("/", async (req, res) => {
   try {
     const { courseId } = req.query;
@@ -30,15 +32,33 @@ router.get("/", async (req, res) => {
         return res.status(access.status).json({ message: access.error });
 
       filter.courseId = courseId;
-    }
-
-    if (req.user.role === 'student') {
-      filter.studentId = req.user.id;
+    } else if (req.user.role === 'student') {
+      // For students without courseId param, fetch all assessments from courses they're enrolled in
+      const courses = await Course.find({ students: req.user.id });
+      const courseIds = courses.map(c => c._id);
+      filter.courseId = { $in: courseIds };
     }
 
     const assessments = await Assessment.find(filter)
       .populate('courseId', 'code name')
       .sort({ dueDate: 1 });
+
+    // For students, add completion status by checking submissions
+    if (req.user.role === 'student') {
+      const Submission = require('../models/Submission');
+      const submissionsByAssessment = {};
+      
+      // Get all submissions for this student
+      const submissions = await Submission.find({ studentId: req.user.id });
+      submissions.forEach(sub => {
+        submissionsByAssessment[sub.assessmentId] = true;
+      });
+
+      // Add completed flag based on submissions
+      assessments.forEach(a => {
+        a.completed = !!submissionsByAssessment[a._id];
+      });
+    }
 
     res.json(assessments);
   } catch (err) {
@@ -53,17 +73,37 @@ router.get("/upcoming", async (req, res) => {
     const now = new Date();
     let filter = {
       dueDate: { $gte: now },
-      completed: false,
     };
 
+    // For students, only get assessments from courses they're enrolled in
     if (req.user.role === 'student') {
-      filter.studentId = req.user.id;
+      const Course = require('../models/Course');
+      const courses = await Course.find({ students: req.user.id });
+      const courseIds = courses.map(c => c._id);
+      filter.courseId = { $in: courseIds };
     }
 
     const assessments = await Assessment.find(filter)
       .populate('courseId', 'code name')
       .sort({ dueDate: 1 })
       .limit(20);
+
+    // For students, add completion status by checking submissions
+    if (req.user.role === 'student') {
+      const Submission = require('../models/Submission');
+      const submissionsByAssessment = {};
+      
+      // Get all submissions for this student
+      const submissions = await Submission.find({ studentId: req.user.id });
+      submissions.forEach(sub => {
+        submissionsByAssessment[sub.assessmentId] = true;
+      });
+
+      // Add completed flag based on submissions
+      assessments.forEach(a => {
+        a.completed = !!submissionsByAssessment[a._id];
+      });
+    }
 
     res.json(assessments);
   } catch (err) {
@@ -117,27 +157,27 @@ router.post("/", adminOnly, async (req, res) => {
         .json({ message: "Weight must be between 0 and 100 (%)." });
     }
 
-    // Create assessment for each enrolled student
-    const assessments = course.students.map(studentId => ({
+    // One shared assessment for the entire course
+    // All students enrolled see this assessment (no per-student duplication)
+    const assessment = await Assessment.create({
       courseId,
-      studentId,
       name,
       type,
       weight: weightDecimal,
       dueDate: dueDate || null,
       visible: visible !== undefined ? visible : true,
       totalMarks: totalMarks || null,
-    }));
+    });
 
-    const created = await Assessment.insertMany(assessments);
-    res.status(201).json(created);
+    res.status(201).json(assessment);
   } catch (err) {
     res.status(500).json({ message: "Failed to create assessment." });
   }
 });
 
 // PUT /api/assessments/:id
-// Update an assessment (students can update their own, admins can update any)
+// For students: cannot update (submissions track completion)
+// For admins: can update assessment details
 router.put("/:id", async (req, res) => {
   try {
     const assessment = await Assessment.findById(req.params.id);
@@ -152,9 +192,9 @@ router.put("/:id", async (req, res) => {
     if (access.error)
       return res.status(access.status).json({ message: access.error });
 
-    // Students can only update their own assessments
-    if (req.user.role === 'student' && assessment.studentId.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Access denied.' });
+    // Students cannot update assessments (no per-student updates now)
+    if (req.user.role === 'student') {
+      return res.status(403).json({ message: 'Students cannot update assessments.' });
     }
 
     const {
@@ -163,41 +203,34 @@ router.put("/:id", async (req, res) => {
       weight,
       dueDate,
       visible,
-      completed,
       earnedMarks,
       totalMarks,
       feedback,
     } = req.body;
 
-    // Students can only update completed
-    if (req.user.role === 'student') {
-      if (completed !== undefined) assessment.completed = completed;
-    } else {
-      // Admins can update everything
-      if (name !== undefined) assessment.name = name;
-      if (type !== undefined) assessment.type = type;
-      if (dueDate !== undefined) assessment.dueDate = dueDate;
-      if (visible !== undefined) assessment.visible = visible;
-      if (completed !== undefined) assessment.completed = completed;
-      if (totalMarks !== undefined) assessment.totalMarks = totalMarks;
-      if (feedback !== undefined) assessment.feedback = feedback;
+    // Admins can update everything
+    if (name !== undefined) assessment.name = name;
+    if (type !== undefined) assessment.type = type;
+    if (dueDate !== undefined) assessment.dueDate = dueDate;
+    if (visible !== undefined) assessment.visible = visible;
+    if (totalMarks !== undefined) assessment.totalMarks = totalMarks;
+    if (feedback !== undefined) assessment.feedback = feedback;
 
-      if (weight !== undefined) {
-        const weightDecimal = weight > 1 ? weight / 100 : weight;
-        assessment.weight = weightDecimal;
-      }
+    if (weight !== undefined) {
+      const weightDecimal = weight > 1 ? weight / 100 : weight;
+      assessment.weight = weightDecimal;
+    }
 
-      // Validate earned marks don't exceed total marks
-      if (earnedMarks !== undefined) {
-        const total =
-          totalMarks !== undefined ? totalMarks : assessment.totalMarks;
-        if (total !== null && earnedMarks > total) {
-          return res
-            .status(400)
-            .json({ message: "Earned marks cannot exceed total marks." });
-        }
-        assessment.earnedMarks = earnedMarks;
+    // Validate earned marks don't exceed total marks
+    if (earnedMarks !== undefined) {
+      const total =
+        totalMarks !== undefined ? totalMarks : assessment.totalMarks;
+      if (total !== null && earnedMarks > total) {
+        return res
+          .status(400)
+          .json({ message: "Earned marks cannot exceed total marks." });
       }
+      assessment.earnedMarks = earnedMarks;
     }
 
     await assessment.save();
@@ -206,6 +239,7 @@ router.put("/:id", async (req, res) => {
     res.status(500).json({ message: "Failed to update assessment." });
   }
 });
+
 
 // DELETE /api/assessments/:id
 router.delete("/:id", adminOnly, async (req, res) => {

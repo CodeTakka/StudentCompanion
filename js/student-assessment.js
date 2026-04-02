@@ -5,6 +5,7 @@ const initialCourseId = params.get("courseId");
 const courseFilter = document.getElementById("courseFilter");
 const tbody = document.getElementById("assessmentTableBody");
 let allAssessments = [];
+let allSubmissions = [];
 let currentAssessmentId = null;
 
 function escapeHtml(str) {
@@ -38,21 +39,45 @@ function formatDate(iso) {
   });
 }
 
+// Helper: Check if this assessment has been submitted by current user
+function isSubmitted(assessmentId) {
+  return allSubmissions.some(sub => sub.assessmentId === assessmentId);
+}
+
+// Helper: Get earned marks from assessment (admin-set grades)
+function getEarnedMarks(assessment) {
+  return assessment.earnedMarks !== null ? `${assessment.earnedMarks} / ${assessment.totalMarks ?? '?'}` : 'Not graded';
+}
+
 function statusBadge(a) {
+  const submitted = isSubmitted(a._id);
   if (a.earnedMarks !== null) return '<span class="status done">Graded</span>';
-  if (a.completed) return '<span class="status submitted">Submitted</span>';
+  if (submitted) return '<span class="status submitted">Submitted</span>';
   if (a.dueDate && new Date(a.dueDate) < new Date()) return '<span class="status overdue">Overdue</span>';
   return '<span class="status comingup">Upcoming</span>';
 }
 
 function rowClass(a) {
-  if (!a.completed && a.dueDate && new Date(a.dueDate) < new Date()) return 'overdue-row';
+  const submitted = isSubmitted(a._id);
+  if (!submitted && a.dueDate && new Date(a.dueDate) < new Date()) return 'overdue-row';
   return '';
 }
 
 async function loadAssessments() {
   try {
     allAssessments = await apiGetAssessments();
+    // Load user's submissions to determine completion status
+    const userId = getUser()?.id;
+    allSubmissions = [];
+    // Get all submissions for all assessments
+    for (const a of allAssessments) {
+      try {
+        const subs = await apiGetSubmissions(a._id);
+        allSubmissions.push(...subs);
+      } catch (err) {
+        // Ignore errors for individual assessment submissions
+      }
+    }
     renderAssessments();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="7" style="color:#c0392b">${escapeHtml(err.message)}</td></tr>`;
@@ -73,8 +98,9 @@ function renderAssessments() {
   tbody.innerHTML = filtered.map(a => {
     const dueDate = formatDate(a.dueDate);
     const courseInfo = a.courseId ? `${escapeHtml(a.courseId.code)} — ${escapeHtml(a.courseId.name)}` : 'Unknown';
-    const gradeText = a.earnedMarks !== null ? `${a.earnedMarks} / ${a.totalMarks ?? '?'} ` : 'Not graded';
-    const actionLabel = a.completed ? 'Resubmit' : 'Submit';
+    const gradeText = getEarnedMarks(a);
+    const submitted = isSubmitted(a._id);
+    const actionLabel = submitted ? 'Resubmit' : 'Submit';
     const escapedName = escapeHtml(a.name).replace(/'/g, "\\'");
 
     return `
@@ -86,8 +112,8 @@ function renderAssessments() {
         <td>${Math.round((a.weight || 0) * 100)}%</td>
         <td>${statusBadge(a)}</td>
         <td>
-          <button class="btn small" onclick="openSubmissionModal('${a._id}', '${escapedName}', '${dueDate}', ${a.totalMarks || 'null'}, ${a.completed})">${actionLabel}</button>
-          <div style="font-size: 12px; margin-top: 5px; color: #666;">${a.completed ? 'Submitted' : 'Not submitted'}</div>
+          <button class="btn small" onclick="openSubmissionModal('${a._id}', '${escapedName}', '${dueDate}', ${a.totalMarks || 'null'}, ${submitted})">${actionLabel}</button>
+          <div style="font-size: 12px; margin-top: 5px; color: #666;">${submitted ? 'Submitted' : 'Not submitted'}</div>
           <div style="font-size: 12px; color: #999;">${courseInfo}</div>
         </td>
       </tr>

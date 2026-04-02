@@ -8,6 +8,8 @@ const submissionSchema = new mongoose.Schema({
   submittedAt: { type: Date, default: Date.now },
   isLate: { type: Boolean, default: false }, // true if submitted after dueDate
   status: { type: String, enum: ['pending', 'graded'], default: 'pending' },
+  earnedMarks: { type: Number, default: null }, // grades are stored in submission, not assessment
+  feedback: { type: String, default: null }, // per-student feedback from grader
 }, { timestamps: true });
 
 // Create index for fast lookup

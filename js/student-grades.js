@@ -26,14 +26,33 @@ async function loadGrades() {
     if (!assessments.length) {
       tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888">No assessments yet.</td></tr>';
     } else {
-      tbody.innerHTML = assessments.map(a => `
-        <tr>
-          <td>${a.name}</td>
-          <td>${a.earnedMarks !== null ? a.earnedMarks : '<em>Not graded</em>'}</td>
-          <td>${a.totalMarks !== null ? `0 – ${a.totalMarks}` : '—'}</td>
-          <td>${Math.round(a.weight * 100)}%</td>
-        </tr>
-      `).join('');
+      // Fetch submissions to get grades
+      const submissionsByAssessment = {};
+      for (const a of assessments) {
+        try {
+          const subs = await apiGetSubmissions(a._id);
+          if (subs.length > 0) {
+            submissionsByAssessment[a._id] = subs[0]; // Get latest submission
+          }
+        } catch (err) {
+          // Ignore errors
+        }
+      }
+
+      tbody.innerHTML = assessments.map(a => {
+        const submission = submissionsByAssessment[a._id];
+        const earnedMarks = submission && submission.earnedMarks !== null ? submission.earnedMarks : null;
+        const gradeText = earnedMarks !== null ? earnedMarks : '<em>Not graded</em>';
+
+        return `
+          <tr>
+            <td>${a.name}</td>
+            <td>${gradeText}</td>
+            <td>${a.totalMarks !== null ? `0 – ${a.totalMarks}` : '—'}</td>
+            <td>${Math.round(a.weight * 100)}%</td>
+          </tr>
+        `;
+      }).join('');
     }
 
     const avg = avgData.average;

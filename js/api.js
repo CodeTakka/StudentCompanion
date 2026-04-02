@@ -43,6 +43,21 @@ function requireAuth() {
   }
 }
 
+/* Redirect to login if not admin.
+   This method should be called at the top of every admin page.
+*/
+
+function requireAdmin() {
+  if (!isLoggedIn()) {
+    window.location.href = "login.html";
+    return;
+  }
+  const user = getUser();
+  if (user.role !== "admin") {
+    window.location.href = "dashboard.html";
+  }
+}
+
 /* Redirect to dashboard/admin if already logged in.
    This method should be called on login and sign-up pages.
 */
@@ -210,6 +225,13 @@ async function apiGetSubmissions(assessmentId, studentId = null) {
   return apiFetch(`/submissions${query}`);
 }
 
+async function apiUpdateSubmission(submissionId, data) {
+  return apiFetch(`/submissions/${submissionId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
 async function apiGetAssessmentSubmissions(assessmentId) {
   return apiFetch(`/submissions/assessment/${assessmentId}/all`);
 }
@@ -226,4 +248,51 @@ async function apiGetTemplates() {
 
 async function apiGetUser(id) {
   return apiFetch(`/admin/users/${id}`);
+}
+
+// Download submission file with proper authorization header
+async function downloadSubmissionFile(submissionId) {
+  const token = getToken();
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/submissions/${submissionId}/download`, {
+      headers
+    });
+
+    if (res.status === 401) {
+      clearSession();
+      window.location.href = "login.html";
+      return;
+    }
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.message || "Failed to download file.");
+    }
+
+    // Get the filename from Content-Disposition header
+    const contentDisposition = res.headers.get("Content-Disposition");
+    let filename = "download";
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=(["\']?)([^\n"\']*)\1/);
+      if (filenameMatch) filename = filenameMatch[2];
+    }
+
+    // Create blob and trigger download
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(link);
+  } catch (err) {
+    alert("Download failed: " + err.message);
+  }
 }
