@@ -67,7 +67,17 @@
       </div>
 
       <div class="panel" id="gradeForm" style="display:none">
-        <h3>Enter Grade for: <span id="gradeAssessmentName"></span></h3>
+        <h3>Grade Assessment: <span id="gradeAssessmentName"></span></h3>
+        
+        <!-- Submission Viewer -->
+        <div id="submissionViewer" class="submission-section" style="display:none;margin-bottom:20px;padding:15px;background:#f9f9f9;border-radius:4px;border-left:4px solid #1976d2">
+          <h4 style="margin-top:0">Student Submission</h4>
+          <div id="submissionInfo"></div>
+          <div id="submissionActions" style="margin-top:10px">
+            <!-- Download link will be inserted here -->
+          </div>
+        </div>
+        
         <div class="form-group">
           <label>Earned Marks</label>
           <input type="number" id="gEarned" placeholder="e.g. 87" min="0" />
@@ -76,9 +86,13 @@
           <label>Total Marks</label>
           <input type="number" id="gTotal" placeholder="e.g. 100" min="1" />
         </div>
+        <div class="form-group">
+          <label>Feedback (optional)</label>
+          <textarea id="gFeedback" placeholder="Add feedback for the student..." rows="4" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;font-family:inherit"></textarea>
+        </div>
         <div class="btn-row">
           <button class="btn" onclick="hideGradeForm()">Cancel</button>
-          <button class="btn primary" onclick="submitGradeForm()">Save Grade</button>
+          <button class="btn primary" onclick="submitGradeForm()">Save Grade & Feedback</button>
         </div>
         <p id="gradeFormMessage" style="color:#c0392b;margin-top:8px"></p>
       </div>

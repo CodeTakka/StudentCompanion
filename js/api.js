@@ -148,6 +148,10 @@ async function apiGetUpcomingAssessments() {
   return apiFetch("/assessments/upcoming");
 }
 
+async function apiGetAssessment(id) {
+  return apiFetch(`/assessments/${id}`);
+}
+
 async function apiCreateAssessment(data) {
   return apiFetch("/assessments", {
     method: "POST",
@@ -164,6 +168,50 @@ async function apiUpdateAssessment(id, data) {
 
 async function apiDeleteAssessment(id) {
   return apiFetch(`/assessments/${id}`, { method: "DELETE" });
+}
+
+// Submissions
+
+async function apiSubmitAssessment(assessmentId, file) {
+  const formData = new FormData();
+  formData.append('assessmentId', assessmentId);
+  formData.append('file', file);
+
+  const token = getToken();
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE}/submissions`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  // If token expired or invalid, kick back to login
+  if (res.status === 401) {
+    clearSession();
+    window.location.href = "login.html";
+    return;
+  }
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message || "Failed to submit assessment.");
+  }
+
+  return data;
+}
+
+async function apiGetSubmissions(assessmentId, studentId = null) {
+  const query = studentId ? `?assessmentId=${assessmentId}&studentId=${studentId}` : `?assessmentId=${assessmentId}`;
+  return apiFetch(`/submissions${query}`);
+}
+
+async function apiGetAssessmentSubmissions(assessmentId) {
+  return apiFetch(`/submissions/assessment/${assessmentId}/all`);
 }
 
 // Admin

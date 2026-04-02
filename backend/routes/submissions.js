@@ -1,0 +1,254 @@
+const express = require('express');
+const router = express.Router();
+const path = require('path');
+const fs = require('fs');
+const Submission = require('../models/Submission');
+const Assessment = require('../models/Assessment');
+const Course = require('../models/Course');
+const upload = require('../middleware/upload');
+const { protect, adminOnly } = require('../middleware/auth');
+
+router.use(protect);
+
+// Helper to verify course access
+const verifyAccess = async (courseId, userId, role) => {
+  const course = await Course.findById(courseId);
+  if (!course) return { error: 'Course not found.', status: 404 };
+  if (role === 'student' && !course.enabled) {
+    return { error: 'Access denied.', status: 403 };
+  }
+  return { course };
+};
+
+// POST /api/submissions
+// Student submits a file for an assessment
+router.post('/', upload.single('file'), async (req, res) => {
+  try {
+    const { assessmentId } = req.body;
+
+    if (!assessmentId || !req.file) {
+      return res.status(400).json({ message: 'assessmentId and file are required.' });
+    }
+
+    // Verify assessment exists and student has access
+    const assessment = await Assessment.findById(assessmentId);
+    if (!assessment) {
+      // Clean up uploaded file if assessment not found
+      fs.unlinkSync(req.file.path);
+      return res.status(404).json({ message: 'Assessment not found.' });
+    }
+
+    // Verify student is submitting for their own assessment
+    if (assessment.studentId.toString() !== req.user.id) {
+      fs.unlinkSync(req.file.path);
+      return res.status(403).json({ message: 'Access denied.' });
+    }
+
+    // Verify course access
+    const access = await verifyAccess(assessment.courseId, req.user.id, req.user.role);
+    if (access.error) {
+      fs.unlinkSync(req.file.path);
+      return res.status(access.status).json({ message: access.error });
+    }
+
+    // Check if submission is late
+    const isLate = assessment.dueDate && new Date() > assessment.dueDate;
+
+    // Create submission record
+    const submission = new Submission({
+      assessmentId,
+      studentId: req.user.id,
+      fileName: req.file.originalname,
+      filePath: req.file.path,
+      isLate
+    });
+
+    await submission.save();
+
+    // Update assessment status to pending grading
+    assessment.status = 'pending';
+    await assessment.save();
+
+    res.status(201).json({
+      message: 'File submitted successfully.',
+      submission: {
+        id: submission._id,
+        fileName: submission.fileName,
+        submittedAt: submission.submittedAt,
+        isLate: submission.isLate
+      }
+    });
+  } catch (err) {
+    // Clean up file if error occurs
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ message: 'Failed to submit assessment.', error: err.message });
+  }
+});
+
+// GET /api/submissions?assessmentId=...&studentId=...
+// Fetch submissions for an assessment + student
+router.get('/', async (req, res) => {
+  try {
+    const { assessmentId, studentId } = req.query;
+
+    if (!assessmentId) {
+      return res.status(400).json({ message: 'assessmentId query param required.' });
+    }
+
+    // If studentId not provided, use authenticated user's ID
+    const queryStudentId = studentId || req.user.id;
+
+    // Verify assessment exists
+    const assessment = await Assessment.findById(assessmentId);
+    if (!assessment) {
+      return res.status(404).json({ message: 'Assessment not found.' });
+    }
+
+    // Verify access
+    if (req.user.role === 'student' && queryStudentId !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
+
+    const access = await verifyAccess(assessment.courseId, req.user.id, req.user.role);
+    if (access.error) {
+      return res.status(access.status).json({ message: access.error });
+    }
+
+    // Fetch submissions
+    const submissions = await Submission.find({
+      assessmentId,
+      studentId: queryStudentId
+    }).sort({ submittedAt: -1 });
+
+    res.json(submissions);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch submissions.' });
+  }
+});
+
+// GET /api/assessments/:id/submissions
+// Admin fetches all submissions for an assessment
+router.get('/assessment/:assessmentId/all', adminOnly, async (req, res) => {
+  try {
+    const { assessmentId } = req.params;
+
+    const assessment = await Assessment.findById(assessmentId);
+    if (!assessment) {
+      return res.status(404).json({ message: 'Assessment not found.' });
+    }
+
+    // Verify admin access to course
+    const access = await verifyAccess(assessment.courseId, req.user.id, req.user.role);
+    if (access.error) {
+      return res.status(access.status).json({ message: access.error });
+    }
+
+    // Fetch all submissions for this assessment
+    const submissions = await Submission.find({ assessmentId })
+      .populate('studentId', 'firstName lastName email')
+      .sort({ submittedAt: -1 });
+
+    res.json(submissions);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch submissions.' });
+  }
+});
+
+// PUT /api/submissions/:id
+// Admin updates submission status after grading
+router.put('/:id', adminOnly, async (req, res) => {
+  try {
+    const submission = await Submission.findById(req.params.id);
+    if (!submission) {
+      return res.status(404).json({ message: 'Submission not found.' });
+    }
+
+    // Verify admin has access to the course
+    const assessment = await Assessment.findById(submission.assessmentId);
+    if (!assessment) {
+      return res.status(404).json({ message: 'Assessment not found.' });
+    }
+
+    const access = await verifyAccess(assessment.courseId, req.user.id, req.user.role);
+    if (access.error) {
+      return res.status(access.status).json({ message: access.error });
+    }
+
+    // Update submission status
+    if (req.body.status !== undefined) {
+      submission.status = req.body.status;
+    }
+
+    await submission.save();
+    res.json(submission);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update submission.' });
+  }
+});
+
+// DELETE /api/submissions/:id
+// Admin deletes a submission
+router.delete('/:id', adminOnly, async (req, res) => {
+  try {
+    const submission = await Submission.findById(req.params.id);
+    if (!submission) {
+      return res.status(404).json({ message: 'Submission not found.' });
+    }
+
+    // Verify admin has access
+    const assessment = await Assessment.findById(submission.assessmentId);
+    if (!assessment) {
+      return res.status(404).json({ message: 'Assessment not found.' });
+    }
+
+    const access = await verifyAccess(assessment.courseId, req.user.id, req.user.role);
+    if (access.error) {
+      return res.status(access.status).json({ message: access.error });
+    }
+
+    // Delete file from filesystem
+    if (fs.existsSync(submission.filePath)) {
+      fs.unlinkSync(submission.filePath);
+    }
+
+    await submission.deleteOne();
+    res.json({ message: 'Submission deleted.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to delete submission.' });
+  }
+});
+
+// GET /api/submissions/:id/download
+// Download submitted file
+router.get('/:id/download', async (req, res) => {
+  try {
+    const submission = await Submission.findById(req.params.id);
+    if (!submission) {
+      return res.status(404).json({ message: 'Submission not found.' });
+    }
+
+    // Verify user has access (student can download own, admin can download any)
+    if (req.user.role === 'student' && submission.studentId.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
+
+    const assessment = await Assessment.findById(submission.assessmentId);
+    const access = await verifyAccess(assessment.courseId, req.user.id, req.user.role);
+    if (access.error) {
+      return res.status(access.status).json({ message: access.error });
+    }
+
+    // Check file exists
+    if (!fs.existsSync(submission.filePath)) {
+      return res.status(404).json({ message: 'File not found.' });
+    }
+
+    res.download(submission.filePath, submission.fileName);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to download file.' });
+  }
+});
+
+module.exports = router;

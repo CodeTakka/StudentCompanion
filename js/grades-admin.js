@@ -101,17 +101,59 @@ async function loadGrades() {
   }
 }
 
-window.openGradeForm = function (id, name, earned, total) {
+window.openGradeForm = async function (id, name, earned, total) {
   gradingAssessmentId = id;
   const nameEl = document.getElementById("gradeAssessmentName");
   const earnedEl = document.getElementById("gEarned");
   const totalEl = document.getElementById("gTotal");
+  const feedbackEl = document.getElementById("gFeedback");
+  const submissionViewer = document.getElementById("submissionViewer");
+  const submissionInfo = document.getElementById("submissionInfo");
+  const submissionActions = document.getElementById("submissionActions");
 
   nameEl.textContent = name;
   earnedEl.value = earned ?? "";
   totalEl.value = total ?? "";
+  feedbackEl.value = "";
 
   document.getElementById("gradeFormMessage").textContent = "";
+
+  // Fetch submission if it exists
+  try {
+    const submissions = await apiGetSubmissions(id);
+    if (submissions.length > 0) {
+      const latest = submissions[0];
+      submissionViewer.style.display = "block";
+      
+      const submittedTime = new Date(latest.submittedAt).toLocaleString();
+      const lateFlag = latest.isLate ? ' <span class="late-flag">LATE</span>' : '';
+      
+      submissionInfo.innerHTML = `
+        <p><span class="submission-label">File:</span> ${latest.fileName}</p>
+        <p><span class="submission-label">Submitted:</span> ${submittedTime}${lateFlag}</p>
+      `;
+      
+      submissionActions.innerHTML = `
+        <a href="/api/submissions/${latest._id}/download" target="_blank" download>⬇ Download File</a>
+      `;
+    } else {
+      submissionViewer.style.display = "none";
+    }
+  } catch (err) {
+    submissionViewer.style.display = "none";
+    console.warn("Failed to fetch submissions:", err);
+  }
+
+  // Try to fetch existing feedback
+  try {
+    const assessment = await apiGetAssessment(id);
+    if (assessment && assessment.feedback) {
+      feedbackEl.value = assessment.feedback;
+    }
+  } catch (err) {
+    console.warn("Failed to fetch assessment feedback:", err);
+  }
+
   document.getElementById("gradeForm").style.display = "block";
 };
 
@@ -124,6 +166,7 @@ window.submitGradeForm = async function () {
   const msg = document.getElementById("gradeFormMessage");
   const earned = parseFloat(document.getElementById("gEarned").value);
   const total = parseFloat(document.getElementById("gTotal").value);
+  const feedback = document.getElementById("gFeedback").value.trim();
 
   if (isNaN(earned) || isNaN(total)) {
     msg.textContent = "Both earned and total marks are required.";
@@ -139,10 +182,15 @@ window.submitGradeForm = async function () {
   }
 
   try {
-    await apiUpdateAssessment(gradingAssessmentId, {
+    const updateData = {
       earnedMarks: earned,
       totalMarks: total,
-    });
+    };
+    if (feedback) {
+      updateData.feedback = feedback;
+    }
+    
+    await apiUpdateAssessment(gradingAssessmentId, updateData);
     hideGradeForm();
     loadGrades();
   } catch (err) {

@@ -16,9 +16,13 @@ app.use(express.urlencoded({ extended: true }));
 // Express handles the files directly instead of using a separate web server
 app.use(express.static(path.join(__dirname, "..")));
 
+// Serve uploaded files
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/courses", require("./routes/courses"));
 app.use("/api/assessments", require("./routes/assessments"));
+app.use("/api/submissions", require("./routes/submissions"));
 app.use("/api/admin", require("./routes/admin"));
 
 app.get("/api/health", (req, res) => {

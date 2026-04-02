@@ -182,3 +182,98 @@ tbody tr:hover {
   background: white;
   color: #c94444;
 }
+
+/* Submission Viewer Styles */
+.submission-section h4 {
+  margin-top: 0;
+  color: #333;
+  font-size: 16px;
+}
+
+#submissionInfo {
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+#submissionInfo p {
+  margin: 6px 0;
+  color: #555;
+}
+
+#submissionInfo .submission-label {
+  font-weight: 600;
+  color: #333;
+}
+
+#submissionInfo .late-flag {
+  display: inline-block;
+  background: #fff3cd;
+  color: #856404;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+#submissionActions a {
+  display: inline-block;
+  background: #1976d2;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+  margin-right: 8px;
+}
+
+#submissionActions a:hover {
+  background: #1565c0;
+}
+
+.no-submission {
+  color: #999;
+  font-style: italic;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+}
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+.btn-row .btn {
+  margin: 0;
+}

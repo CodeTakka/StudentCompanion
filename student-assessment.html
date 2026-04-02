@@ -51,6 +51,27 @@
       </div>
     </div>
 
+    <div id="submissionModal" class="modal hidden">
+      <div class="modal-content">
+        <span class="close-modal" onclick="closeSubmissionModal()">&times;</span>
+        <h2>Submit Assessment</h2>
+        <div id="assessmentDetails">
+        </div>
+        <div class="submission-status" id="submissionStatus"></div>
+        <form id="submitForm" style="display: none;">
+          <div class="form-group">
+            <label for="fileInput">Choose file to submit:</label>
+            <input type="file" id="fileInput" name="file" required />
+            <small>Allowed: PDF, Word, Excel, Text, Images (max 50MB)</small>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn primary">Submit Assignment</button>
+            <button type="button" class="btn secondary" onclick="closeSubmissionModal()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <script src="js/api.js"></script>
     <script>
       requireAuth();

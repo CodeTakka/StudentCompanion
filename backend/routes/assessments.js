@@ -159,6 +159,7 @@ router.put("/:id", async (req, res) => {
       completed,
       earnedMarks,
       totalMarks,
+      feedback,
     } = req.body;
 
     // Students can only update completed
@@ -172,6 +173,7 @@ router.put("/:id", async (req, res) => {
       if (visible !== undefined) assessment.visible = visible;
       if (completed !== undefined) assessment.completed = completed;
       if (totalMarks !== undefined) assessment.totalMarks = totalMarks;
+      if (feedback !== undefined) assessment.feedback = feedback;
 
       if (weight !== undefined) {
         const weightDecimal = weight > 1 ? weight / 100 : weight;

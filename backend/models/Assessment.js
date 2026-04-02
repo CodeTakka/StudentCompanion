@@ -10,7 +10,8 @@ const assessmentSchema = new mongoose.Schema({
   visible:    { type: Boolean, default: false },
   completed:  { type: Boolean, default: false },
   earnedMarks:{ type: Number, default: null },
-  totalMarks: { type: Number }
+  totalMarks: { type: Number },
+  feedback:   { type: String, default: null } // admin feedback/comments
 });
 
 module.exports = mongoose.model('Assessment', assessmentSchema);
