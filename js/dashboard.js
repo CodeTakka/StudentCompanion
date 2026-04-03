@@ -85,7 +85,7 @@ async function renderStats(courses) {
 
   const userId = getUser()?.id || null;
   const averages = await Promise.all(
-    courses.map(c => apiGetCourseAverage(c._id).catch(() => ({ average: null })))
+    courses.map(c => apiGetCourseAverage(c._id, userId).catch(() => ({ average: null })))
   );
 
   // Removes any null average
