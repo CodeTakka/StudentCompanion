@@ -57,7 +57,9 @@ document.getElementById('dropClassBtn').addEventListener('click', async () => {
   if (!confirm('Are you sure you want to drop this class?')) return;
 
   try {
-    await apiFetch(`/courses/${courseId}/unenroll`, { method: 'POST' });
+    await apiFetch(`/courses/${courseId}/unenroll`, { 
+      method: 'POST' 
+    });
     alert('You have successfully dropped the course.');
     window.location.href = 'dashboard.html';
   } catch (err) {
