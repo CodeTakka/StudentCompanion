@@ -85,7 +85,7 @@ async function renderStats(courses) {
 
   const userId = getUser()?.id || null;
 
-  // 1. Fetch per-course averages (grades)
+  // Per-course averages (grades)
   const gradeResults = await Promise.all(
     courses.map(c => apiGetCourseAverage(c._id, userId).catch(() => ({ average: null })))
   );
@@ -95,7 +95,7 @@ async function renderStats(courses) {
     ? Math.round(validGrades.reduce((s,v) => s+v, 0) / validGrades.length)
     : null;
 
-   // 2. Compute progress across ALL courses combined
+   // Progress across all courses combined
   let totalVisible = 0;
   let totalCompleted = 0;
 
@@ -114,7 +114,7 @@ async function renderStats(courses) {
       ? Math.round((totalCompleted / totalVisible) * 100)
       : null;
 
-  // 3. Update UI
+  // UI update
   statCourses.textContent     = courses.length;
   statAvgProgress.textContent = overallProgress !== null ? `${overallProgress}%` : '—';
   statAvgGrade.textContent    = overallGrade !== null ? `${overallGrade}%` : '—';

@@ -134,6 +134,10 @@ async function apiGetCourseAverage(id, studentId = null) {
   return apiFetch(`/courses/${id}/average${query}`);
 }
 
+async function apiGetCourseAverageGlobal(courseId) {
+  return apiFetch(`/courses/${courseId}/average-global`);
+}
+
 async function apiCreateCourse(data) {
   return apiFetch("/courses", { method: "POST", body: JSON.stringify(data) });
 }

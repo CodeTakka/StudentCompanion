@@ -4,6 +4,7 @@ const router = express.Router();
 const Course = require('../models/Course');
 const Assessment = require('../models/Assessment');
 const CourseTemplate = require('../models/CourseTemplate');
+const Submission = require("../models/Submission");
 const { protect, adminOnly } = require('../middleware/auth');
 
 // All course routes require login
@@ -128,6 +129,45 @@ router.get('/:id/average', async (req, res) => {
   } catch (err) {
     console.error("AVERAGE ERROR:", err);
     res.status(500).json({ message: "Failed to calculate average." });
+  }
+});
+
+// GET /courses/:id/average-global
+router.get("/:id/average-global", async (req, res) => {
+  try {
+    const courseId = req.params.id;
+
+    const assessments = await Assessment.find({ courseId });
+    if (!assessments.length) {
+      return res.json({ average: null });
+    }
+
+    let totalWeight = 0;
+    let weightedSum = 0;
+
+    for (const a of assessments) {
+      const subs = await Submission.find({
+        assessmentId: a._id,
+        earnedMarks: { $ne: null }
+      });
+
+      if (!subs.length) continue;
+
+      const avgEarned =
+        subs.reduce((s, s2) => s + s2.earnedMarks, 0) / subs.length;
+
+      const pct = avgEarned / a.totalMarks;
+
+      weightedSum += pct * a.weight * 100;
+      totalWeight += a.weight;
+    }
+
+    const average =
+      totalWeight > 0 ? Math.round(weightedSum / totalWeight) : null;
+
+    res.json({ average });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

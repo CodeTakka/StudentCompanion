@@ -14,7 +14,7 @@ async function loadStats() {
 
     // Getting the average for each course
     const averages = await Promise.all(
-      courses.map(c => apiGetCourseAverage(c._id).catch(() => ({ average: null })))
+      courses.map(c => apiGetCourseAverageGlobal(c._id).catch(() => ({ average: null })))
     );
 
     renderProgressBars(courses, averages);
