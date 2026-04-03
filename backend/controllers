@@ -1,0 +1,178 @@
+const Course = require("../models/Course");
+const Assessment = require("../models/Assessment");
+
+const calculateCourseAverage = (assessments) => {
+  let earned = 0;
+  let total = 0;
+
+  assessments.forEach((a) => {
+    earned += a.earnedMarks || 0;
+    total += a.totalMarks || 0;
+  });
+
+  if (total === 0) return 0;
+  return Math.round((earned / total) * 100);
+};
+
+const calculateCourseProgress = (assessments) => {
+  if (assessments.length === 0) return 0;
+  const completed = assessments.filter((a) => a.status === "completed").length;
+  return Math.round((completed / assessments.length) * 100);
+};
+
+const getSummary = async (req, res) => {
+  try {
+    const courses = await Course.find({ userId: req.user.id });
+
+    let totalProgress = 0;
+    let totalAverage = 0;
+    let countedCourses = 0;
+    let term = "N/A";
+
+    for (const course of courses) {
+      const assessments = await Assessment.find({ courseId: course._id });
+
+      const avg = calculateCourseAverage(assessments);
+      const progress = calculateCourseProgress(assessments);
+
+      totalAverage += avg;
+      totalProgress += progress;
+      countedCourses++;
+
+      if (term === "N/A") {
+        term = course.term;
+      }
+    }
+
+    res.json({
+      totalCourses: courses.length,
+      avgProgress: countedCourses ? Math.round(totalProgress / countedCourses) : 0,
+      avgGrade: countedCourses ? Math.round(totalAverage / countedCourses) : 0,
+      term
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch summary" });
+  }
+};
+
+const getSnapshot = async (req, res) => {
+  try {
+    const course = await Course.findOne({ userId: req.user.id }).sort({ createdAt: 1 });
+
+    if (!course) {
+      return res.json(null);
+    }
+
+    const assessments = await Assessment.find({ courseId: course._id });
+
+    const snapshot = {
+      _id: course._id,
+      code: course.code,
+      name: course.name,
+      instructor: course.instructor,
+      term: course.term,
+      average: calculateCourseAverage(assessments),
+      progress: calculateCourseProgress(assessments),
+      totalAssessments: assessments.length
+    };
+
+    res.json(snapshot);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch snapshot" });
+  }
+};
+
+const getCourses = async (req, res) => {
+  try {
+    const courses = await Course.find({ userId: req.user.id });
+
+    const result = [];
+
+    for (const course of courses) {
+      const assessments = await Assessment.find({ courseId: course._id });
+
+      result.push({
+        _id: course._id,
+        code: course.code,
+        name: course.name,
+        instructor: course.instructor,
+        term: course.term,
+        average: calculateCourseAverage(assessments),
+        progress: calculateCourseProgress(assessments)
+      });
+    }
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch courses" });
+  }
+};
+
+const getCalendar = async (req, res) => {
+  try {
+    const courses = await Course.find({ userId: req.user.id });
+    const courseIds = courses.map((c) => c._id);
+
+    const assessments = await Assessment.find({
+      courseId: { $in: courseIds }
+    }).populate("courseId");
+
+    const calendarItems = assessments.map((a) => ({
+      _id: a._id,
+      title: a.title,
+      category: a.category,
+      dueDate: a.dueDate,
+      status: a.status,
+      courseCode: a.courseId.code,
+      courseName: a.courseId.name
+    }));
+
+    res.json(calendarItems);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch calendar data" });
+  }
+};
+
+const getDayItems = async (req, res) => {
+  try {
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({ message: "Date is required" });
+    }
+
+    const start = new Date(date);
+    const end = new Date(date);
+    end.setDate(end.getDate() + 1);
+
+    const courses = await Course.find({ userId: req.user.id });
+    const courseIds = courses.map((c) => c._id);
+
+    const items = await Assessment.find({
+      courseId: { $in: courseIds },
+      dueDate: { $gte: start, $lt: end }
+    }).populate("courseId");
+
+    const result = items.map((item) => ({
+      _id: item._id,
+      title: item.title,
+      category: item.category,
+      status: item.status,
+      dueDate: item.dueDate,
+      courseCode: item.courseId.code,
+      courseName: item.courseId.name
+    }));
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch day items" });
+  }
+};
+
+module.exports = {
+  getSummary,
+  getSnapshot,
+  getCourses,
+  getCalendar,
+  getDayItems
+};
