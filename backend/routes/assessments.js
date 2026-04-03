@@ -32,11 +32,24 @@ router.get("/", async (req, res) => {
         return res.status(access.status).json({ message: access.error });
 
       filter.courseId = courseId;
+
+      if (req.user.role === 'student') {
+        filter.$or = [
+          { studentId: req.user.id },
+          { studentId: null },
+          { studentId: { $exists: false } },
+        ];
+      }
     } else if (req.user.role === 'student') {
       // For students without courseId param, fetch all assessments from courses they're enrolled in
       const courses = await Course.find({ students: req.user.id });
       const courseIds = courses.map(c => c._id);
       filter.courseId = { $in: courseIds };
+      filter.$or = [
+        { studentId: req.user.id },
+        { studentId: null },
+        { studentId: { $exists: false } },
+      ];
     }
 
     const assessments = await Assessment.find(filter)
@@ -81,6 +94,11 @@ router.get("/upcoming", async (req, res) => {
       const courses = await Course.find({ students: req.user.id });
       const courseIds = courses.map(c => c._id);
       filter.courseId = { $in: courseIds };
+      filter.$or = [
+        { studentId: req.user.id },
+        { studentId: null },
+        { studentId: { $exists: false } },
+      ];
     }
 
     const assessments = await Assessment.find(filter)
@@ -161,6 +179,7 @@ router.post("/", adminOnly, async (req, res) => {
     // All students enrolled see this assessment (no per-student duplication)
     const assessment = await Assessment.create({
       courseId,
+      studentId: null,
       name,
       type,
       weight: weightDecimal,

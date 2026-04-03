@@ -59,7 +59,29 @@ router.get('/:id/average', async (req, res) => {
     }
 
     const { studentId } = req.query;
-    const filter = studentId ? { courseId: req.params.id, studentId } : { courseId: req.params.id };
+
+    let filter;
+    if (studentId) {
+      filter = {
+        courseId: req.params.id,
+        $or: [
+          { studentId },
+          { studentId: null },
+          { studentId: { $exists: false } },
+        ],
+      };
+    } else if (req.user.role === 'student') {
+      filter = {
+        courseId: req.params.id,
+        $or: [
+          { studentId: req.user.id },
+          { studentId: null },
+          { studentId: { $exists: false } },
+        ],
+      };
+    } else {
+      filter = { courseId: req.params.id };
+    }
 
     const assessments = await Assessment.find(filter);
 

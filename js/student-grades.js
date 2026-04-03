@@ -41,7 +41,9 @@ async function loadGrades() {
 
       tbody.innerHTML = assessments.map(a => {
         const submission = submissionsByAssessment[a._id];
-        const earnedMarks = submission && submission.earnedMarks !== null ? submission.earnedMarks : null;
+        const earnedMarks = submission?.earnedMarks !== undefined && submission?.earnedMarks !== null
+          ? submission.earnedMarks
+          : (a.earnedMarks !== null && a.earnedMarks !== undefined ? a.earnedMarks : null);
         const gradeText = earnedMarks !== null ? earnedMarks : '<em>Not graded</em>';
 
         return `
