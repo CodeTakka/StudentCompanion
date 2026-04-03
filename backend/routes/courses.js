@@ -205,6 +205,29 @@ router.post('/:id/enroll', async (req, res) => {
   }
 });
 
+// Students can drop a course
+router.post('/:id/unenroll', async (req, res) => {
+  try {
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ message: 'Only students can drop a course.' });
+    }
+
+    const course = await Course.findById(req.params.id);
+    if (!course) return res.status(404).json({ message: 'Course not found.' });
+
+    if (!course.students.includes(req.user.id)) {
+      return res.status(400).json({ message: 'You are not enrolled in this course.' });
+    }
+
+    course.students = course.students.filter(id => id.toString() !== req.user.id);
+    await course.save();
+
+    res.json({ message: 'Successfully dropped the course.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to drop course.' });
+  }
+});
+
 // PUT /api/courses/:id
 // Only admins can edit courses
 router.put('/:id', adminOnly, async (req, res) => {
