@@ -56,7 +56,7 @@ async function loadDashboard() {
     // removes items without due dates
       .filter(a => a.dueDate)
       .map(a => ({
-        date:  a.dueDate.slice(0, 10),
+        date: fmtISO(new Date(a.dueDate)),
         // If the course code is missing, it displays "Course".
         title: `${a.courseId?.code || 'Course'} — ${a.name}`,
         note:  `${a.type} • Weight ${Math.round(a.weight * 100)}% • ${a.completed ? 'Completed' : 'Pending'}`
@@ -85,7 +85,7 @@ async function renderStats(courses) {
 
   const userId = getUser()?.id || null;
   const averages = await Promise.all(
-    courses.map(c => apiGetCourseAverage(c._id, userId).catch(() => ({ average: null })))
+    courses.map(c => apiGetCourseAverage(c._id).catch(() => ({ average: null })))
   );
 
   // Removes any null average
