@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const Course = require("../models/Course");
+const Submission = require("../models/Submission");
 const Assessment = require("../models/Assessment");
 const CourseTemplate = require("../models/CourseTemplate");
 const { protect, adminOnly } = require("../middleware/auth");
@@ -16,10 +17,15 @@ router.get("/stats", async (req, res) => {
     const totalStudents = await User.countDocuments({ role: "student" });
     const totalCourses = await Course.countDocuments();
     const enabledCourses = await Course.countDocuments({ enabled: true });
-    const totalAssessments = await Assessment.countDocuments();
-    const completedAssessments = await Assessment.countDocuments({
-      completed: true,
-    });
+
+    // Count all submissions from all students
+    const submissions = await Submission.find();
+
+    const totalAssessments = submissions.length;
+
+    const completedAssessments = submissions.filter(
+      s => s.earnedMarks != null
+    ).length;
 
     const completionRate =
       totalAssessments > 0
@@ -33,8 +39,9 @@ router.get("/stats", async (req, res) => {
       disabledCourses: totalCourses - enabledCourses,
       totalAssessments,
       completedAssessments,
-      completionRate, // e.g. 72 means 72% of all assessments are marked complete
+      completionRate
     });
+
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch statistics." });
   }
