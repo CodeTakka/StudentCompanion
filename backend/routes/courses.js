@@ -53,8 +53,9 @@ router.get('/:id', async (req, res) => {
 router.get('/:id/average', async (req, res) => {
   try {
     const courseId = req.params.id;
+    const studentId = req.query.studentId;
 
-    // 1. Get all visible assessments for this course
+    // Get all visible assessments
     const assessments = await Assessment.find({
       courseId,
       visible: true
@@ -64,43 +65,71 @@ router.get('/:id/average', async (req, res) => {
       return res.json({ average: null });
     }
 
-    // 2. Only include assessments that have grades
-    const graded = assessments.filter(a =>
-      a.earnedMarks != null &&
-      a.totalMarks != null &&
-      a.totalMarks > 0 &&
-      a.weight != null &&
-      a.weight > 0
-    );
+    // If studentId is provided, use per-student submissions
+    let graded = [];
+
+    if (studentId) {
+      const Submission = require('../models/Submission');
+
+      for (const a of assessments) {
+        const sub = await Submission.findOne({
+          assessmentId: a._id,
+          studentId
+        });
+
+        let earned = null;
+        if (sub && sub.earnedMarks != null) {
+          earned = sub.earnedMarks;
+        } else if (a.earnedMarks != null) {
+          earned = a.earnedMarks;
+        }
+
+        if (earned != null && a.totalMarks > 0 && a.weight > 0) {
+          graded.push({
+            earned,
+            total: a.totalMarks,
+            weight: a.weight
+          });
+        }
+      }
+    } else {
+      // fallback: global grading
+      graded = assessments
+        .filter(a =>
+          a.earnedMarks != null &&
+          a.totalMarks != null &&
+          a.totalMarks > 0 &&
+          a.weight > 0
+        )
+        .map(a => ({
+          earned: a.earnedMarks,
+          total: a.totalMarks,
+          weight: a.weight
+        }));
+    }
 
     if (!graded.length) {
       return res.json({ average: null });
     }
 
-    // 3. Weighted average
     let weightedSum = 0;
     let totalWeight = 0;
 
-    for (const a of graded) {
-      const pct = a.earnedMarks / a.totalMarks;
-      weightedSum += pct * a.weight;
-      totalWeight += a.weight;
+    for (const g of graded) {
+      const pct = g.earned / g.total;
+      weightedSum += pct * g.weight;
+      totalWeight += g.weight;
     }
 
-    const average = totalWeight > 0 ? (weightedSum / totalWeight) * 100 : null;
+    const average = totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 100) : null;
 
-    res.json({
-      average: average !== null ? Math.round(average) : null,
-      gradedCount: graded.length,
-      totalCount: assessments.length
-    });
+    res.json({ average });
 
   } catch (err) {
     console.error("AVERAGE ERROR:", err);
     res.status(500).json({ message: "Failed to calculate average." });
   }
 });
-
 
 // Students can enroll in enabled courses
 router.post('/:id/enroll', async (req, res) => {

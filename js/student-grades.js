@@ -47,7 +47,7 @@ async function loadGrades(courseId) {
     const [course, assessments, avgData] = await Promise.all([
       apiGetCourse(courseId),
       apiGetAssessments(courseId),
-      apiGetCourseAverage(courseId)
+      apiGetCourseAverage(courseId, getUser().id)
     ]);
 
     if (!assessments.length) {

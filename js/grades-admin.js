@@ -1,3 +1,5 @@
+requireAdmin();
+
 let selectedCourseId = null;
 let selectedStudentId = null;
 let gradingAssessmentId = null;
@@ -127,7 +129,7 @@ async function loadGrades() {
 
 window.openGradeForm = async function (id, name, earned, total, studentId, submissionId) {
   gradingAssessmentId = id;
-  gradingSubmissionId = submissionId || null; // Store submission ID for grading
+  gradingSubmissionId = (submissionId && submissionId !== "null") ? submissionId : null;
   const nameEl = document.getElementById("gradeAssessmentName");
   const earnedEl = document.getElementById("gEarned");
   const totalEl = document.getElementById("gTotal");
@@ -199,6 +201,8 @@ window.submitGradeForm = async function () {
   const total = parseFloat(document.getElementById("gTotal").value);
   const feedback = document.getElementById("gFeedback").value.trim();
 
+  console.log('Submitting grade: earned =', earned, 'total =', total, 'feedback =', feedback);
+
   if (isNaN(earned) || isNaN(total)) {
     msg.textContent = "Both earned and total marks are required.";
     return;
@@ -213,28 +217,39 @@ window.submitGradeForm = async function () {
   }
 
   try {
-    // Updating the Assessment (global grade)
+    // Update assessment total/feedback only (do not set earnedMarks globally)
     const assessmentUpdate = {
-      earnedMarks: earned,
       totalMarks: total,
     };
     if (feedback) {
       assessmentUpdate.feedback = feedback;
     }
+    console.log('Assessment update data:', assessmentUpdate);
     await apiUpdateAssessment(gradingAssessmentId, assessmentUpdate);
 
-    // If a submission exists, updating the per-student submission too
+    // Update or insert student-specific submission grade.
+    const submissionGradeData = {
+      assessmentId: gradingAssessmentId,
+      studentId: selectedStudentId,
+      earnedMarks: earned,
+      feedback: feedback || null,
+    };
+
     if (gradingSubmissionId) {
-      const submissionUpdate = {
+      console.log('Submission update data:', submissionGradeData);
+      await apiUpdateSubmission(gradingSubmissionId, {
         earnedMarks: earned,
         feedback: feedback || null,
-      };
-      await apiUpdateSubmission(gradingSubmissionId, submissionUpdate);
+      });
+    } else {
+      console.log('Creating grade-only submission:', submissionGradeData);
+      await apiGradeSubmission(submissionGradeData);
     }
-    
+
     hideGradeForm();
     loadGrades();
   } catch (err) {
+    console.log('Error updating grade:', err);
     msg.textContent = err.message;
   }
 };

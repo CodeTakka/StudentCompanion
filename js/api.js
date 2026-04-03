@@ -232,6 +232,13 @@ async function apiUpdateSubmission(submissionId, data) {
   });
 }
 
+async function apiGradeSubmission(data) {
+  return apiFetch("/submissions/grade", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
 async function apiGetAssessmentSubmissions(assessmentId) {
   return apiFetch(`/submissions/assessment/${assessmentId}/all`);
 }

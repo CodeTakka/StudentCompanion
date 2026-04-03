@@ -79,6 +79,49 @@ router.post('/', upload.single('file'), async (req, res) => {
 
 // GET /api/submissions?assessmentId=...&studentId=...
 // Fetch submissions for an assessment + student
+router.post('/grade', adminOnly, async (req, res) => {
+  try {
+    const { assessmentId, studentId, earnedMarks, feedback } = req.body;
+
+    if (!assessmentId || !studentId || earnedMarks == null) {
+      return res.status(400).json({ message: 'assessmentId, studentId, and earnedMarks are required.' });
+    }
+
+    const assessment = await Assessment.findById(assessmentId);
+    if (!assessment) {
+      return res.status(404).json({ message: 'Assessment not found.' });
+    }
+
+    const access = await verifyAccess(assessment.courseId, req.user.id, req.user.role);
+    if (access.error) {
+      return res.status(access.status).json({ message: access.error });
+    }
+
+    let submission = await Submission.findOne({ assessmentId, studentId });
+
+    if (!submission) {
+      submission = new Submission({
+        assessmentId,
+        studentId,
+        fileName: null,
+        filePath: null,
+        status: 'graded',
+        earnedMarks,
+        feedback: feedback || null
+      });
+    } else {
+      submission.earnedMarks = earnedMarks;
+      submission.feedback = feedback || null;
+      submission.status = 'graded';
+    }
+
+    await submission.save();
+    res.json(submission);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to save graded submission.', error: err.message });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const { assessmentId, studentId } = req.query;
