@@ -124,10 +124,6 @@ router.get("/upcoming", async (req, res) => {
       // Add completed flag and earned marks based on submissions
       assessments.forEach((a) => {
         a.completed = !!submissionsByAssessment[a._id];
-        // Override assessment earnedMarks with submission earnedMarks if available
-        if (earnedMarksByAssessment[a._id] !== undefined) {
-          a.earnedMarks = earnedMarksByAssessment[a._id];
-        }
       });
     }
 

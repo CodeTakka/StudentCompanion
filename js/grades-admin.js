@@ -213,23 +213,23 @@ window.submitGradeForm = async function () {
   }
 
   try {
-    // If we have a submission, update it (per-student grading)
+    // Updating the Assessment (global grade)
+    const assessmentUpdate = {
+      earnedMarks: earned,
+      totalMarks: total,
+    };
+    if (feedback) {
+      assessmentUpdate.feedback = feedback;
+    }
+    await apiUpdateAssessment(gradingAssessmentId, assessmentUpdate);
+
+    // If a submission exists, updating the per-student submission too
     if (gradingSubmissionId) {
-      const updateData = {
+      const submissionUpdate = {
         earnedMarks: earned,
         feedback: feedback || null,
       };
-      await apiUpdateSubmission(gradingSubmissionId, updateData);
-    } else {
-      // Fallback to assessment update if no submission exists
-      const updateData = {
-        earnedMarks: earned,
-        totalMarks: total,
-      };
-      if (feedback) {
-        updateData.feedback = feedback;
-      }
-      await apiUpdateAssessment(gradingAssessmentId, updateData);
+      await apiUpdateSubmission(gradingSubmissionId, submissionUpdate);
     }
     
     hideGradeForm();
