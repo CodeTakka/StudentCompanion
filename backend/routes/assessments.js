@@ -32,24 +32,11 @@ router.get("/", async (req, res) => {
         return res.status(access.status).json({ message: access.error });
 
       filter.courseId = courseId;
-
-      if (req.user.role === 'student') {
-        filter.$or = [
-          { studentId: req.user.id },
-          { studentId: null },
-          { studentId: { $exists: false } },
-        ];
-      }
     } else if (req.user.role === 'student') {
       // For students without courseId param, fetch all assessments from courses they're enrolled in
       const courses = await Course.find({ students: req.user.id });
       const courseIds = courses.map(c => c._id);
       filter.courseId = { $in: courseIds };
-      filter.$or = [
-        { studentId: req.user.id },
-        { studentId: null },
-        { studentId: { $exists: false } },
-      ];
     }
 
     const assessments = await Assessment.find(filter)
@@ -60,16 +47,24 @@ router.get("/", async (req, res) => {
     if (req.user.role === 'student') {
       const Submission = require('../models/Submission');
       const submissionsByAssessment = {};
+      const earnedMarksByAssessment = {};
       
       // Get all submissions for this student
       const submissions = await Submission.find({ studentId: req.user.id });
       submissions.forEach(sub => {
         submissionsByAssessment[sub.assessmentId] = true;
+        if (sub.earnedMarks !== null) {
+          earnedMarksByAssessment[sub.assessmentId] = sub.earnedMarks;
+        }
       });
 
-      // Add completed flag based on submissions
+      // Add completed flag and earned marks based on submissions
       assessments.forEach(a => {
         a.completed = !!submissionsByAssessment[a._id];
+        // Override assessment earnedMarks with submission earnedMarks if available
+        if (earnedMarksByAssessment[a._id] !== undefined) {
+          a.earnedMarks = earnedMarksByAssessment[a._id];
+        }
       });
     }
 
@@ -94,11 +89,6 @@ router.get("/upcoming", async (req, res) => {
       const courses = await Course.find({ students: req.user.id });
       const courseIds = courses.map(c => c._id);
       filter.courseId = { $in: courseIds };
-      filter.$or = [
-        { studentId: req.user.id },
-        { studentId: null },
-        { studentId: { $exists: false } },
-      ];
     }
 
     const assessments = await Assessment.find(filter)
@@ -110,16 +100,24 @@ router.get("/upcoming", async (req, res) => {
     if (req.user.role === 'student') {
       const Submission = require('../models/Submission');
       const submissionsByAssessment = {};
+      const earnedMarksByAssessment = {};
       
       // Get all submissions for this student
       const submissions = await Submission.find({ studentId: req.user.id });
       submissions.forEach(sub => {
         submissionsByAssessment[sub.assessmentId] = true;
+        if (sub.earnedMarks !== null) {
+          earnedMarksByAssessment[sub.assessmentId] = sub.earnedMarks;
+        }
       });
 
-      // Add completed flag based on submissions
+      // Add completed flag and earned marks based on submissions
       assessments.forEach(a => {
         a.completed = !!submissionsByAssessment[a._id];
+        // Override assessment earnedMarks with submission earnedMarks if available
+        if (earnedMarksByAssessment[a._id] !== undefined) {
+          a.earnedMarks = earnedMarksByAssessment[a._id];
+        }
       });
     }
 
@@ -179,7 +177,6 @@ router.post("/", adminOnly, async (req, res) => {
     // All students enrolled see this assessment (no per-student duplication)
     const assessment = await Assessment.create({
       courseId,
-      studentId: null,
       name,
       type,
       weight: weightDecimal,

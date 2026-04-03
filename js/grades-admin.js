@@ -112,9 +112,14 @@ async function loadGrades() {
         .join("");
     }
 
-    const avgData = await apiGetCourseAverage(selectedCourseId, selectedStudentId);
-    const avg = avgData.average;
-    document.getElementById("courseAverage").textContent = avg ?? "—";
+    // Only calculate average if we have a valid student selected
+    if (selectedStudentId && selectedStudentId.trim()) {
+      const avgData = await apiGetCourseAverage(selectedCourseId, selectedStudentId);
+      const avg = avgData.average;
+      document.getElementById("courseAverage").textContent = avg ?? "—";
+    } else {
+      document.getElementById("courseAverage").textContent = "—";
+    }
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="5" style="color:#c0392b">${err.message}</td></tr>`;
   }

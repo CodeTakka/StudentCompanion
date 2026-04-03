@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Course = require('../models/Course');
 const Assessment = require('../models/Assessment');
@@ -51,50 +52,32 @@ router.get('/:id', async (req, res) => {
 // Server-side weighted average calculation (required by rubric)
 router.get('/:id/average', async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id);
-    if (!course) return res.status(404).json({ message: 'Course not found.' });
+    const courseId = req.params.id;
 
-    if (req.user.role === 'student' && !course.enabled) {
-      return res.status(403).json({ message: 'Access denied.' });
+    // 1. Get all visible assessments for this course
+    const assessments = await Assessment.find({
+      courseId,
+      visible: true
+    });
+
+    if (!assessments.length) {
+      return res.json({ average: null });
     }
 
-    const { studentId } = req.query;
-
-    let filter;
-    if (studentId) {
-      filter = {
-        courseId: req.params.id,
-        $or: [
-          { studentId },
-          { studentId: null },
-          { studentId: { $exists: false } },
-        ],
-      };
-    } else if (req.user.role === 'student') {
-      filter = {
-        courseId: req.params.id,
-        $or: [
-          { studentId: req.user.id },
-          { studentId: null },
-          { studentId: { $exists: false } },
-        ],
-      };
-    } else {
-      filter = { courseId: req.params.id };
-    }
-
-    const assessments = await Assessment.find(filter);
-
-    // Only include graded assessments in the average
-    const graded = assessments.filter(
-      a => a.earnedMarks !== null && a.totalMarks !== null && a.totalMarks > 0
+    // 2. Only include assessments that have grades
+    const graded = assessments.filter(a =>
+      a.earnedMarks != null &&
+      a.totalMarks != null &&
+      a.totalMarks > 0 &&
+      a.weight != null &&
+      a.weight > 0
     );
 
-    if (graded.length === 0) {
-      return res.json({ average: null, message: 'No graded assessments yet.' });
+    if (!graded.length) {
+      return res.json({ average: null });
     }
 
-    // Weighted average: sum of (earnedMarks/totalMarks * weight) / sum of weights
+    // 3. Weighted average
     let weightedSum = 0;
     let totalWeight = 0;
 
@@ -107,37 +90,17 @@ router.get('/:id/average', async (req, res) => {
     const average = totalWeight > 0 ? (weightedSum / totalWeight) * 100 : null;
 
     res.json({
-      average: average !== null ? Math.round(average * 100) / 100 : null, // round to 2 decimal places
+      average: average !== null ? Math.round(average) : null,
       gradedCount: graded.length,
       totalCount: assessments.length
     });
 
   } catch (err) {
-    res.status(500).json({ message: 'Failed to calculate average.' });
+    console.error("AVERAGE ERROR:", err);
+    res.status(500).json({ message: "Failed to calculate average." });
   }
 });
 
-// POST /api/courses
-// Students add a course they're enrolled in; admins create courses
-router.post('/', async (req, res) => {
-  try {
-    const { code, name, instructor, term, description, enabled } = req.body;
-
-    if (!code || !name) {
-      return res.status(400).json({ message: 'Course code and name are required.' });
-    }
-
-    const course = await Course.create({
-      code, name, instructor, term, description,
-      enabled: enabled !== undefined ? enabled : true,
-      createdBy: req.user.id
-    });
-
-    res.status(201).json(course);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to create course.' });
-  }
-});
 
 // Students can enroll in enabled courses
 router.post('/:id/enroll', async (req, res) => {
@@ -163,14 +126,8 @@ router.post('/:id/enroll', async (req, res) => {
     // Create assessments for the student
     const template = await CourseTemplate.findOne({ code: course.code });
     if (template) {
-      const assessments = template.assessments.map(a => ({
-        courseId: course._id,
-        studentId: req.user.id,
-        name: a.name,
-        type: a.type,
-        weight: a.weight
-      }));
-      await Assessment.insertMany(assessments);
+      res.json({ message: 'Enrolled successfully.' });
+
     }
 
     res.json({ message: 'Enrolled successfully.' });

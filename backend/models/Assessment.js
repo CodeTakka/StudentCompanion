@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 
 const assessmentSchema = new mongoose.Schema({
   courseId:   { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
-  studentId:  { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   name:       { type: String, required: true },
   type:       { type: String, enum: ['Exam', 'Quiz', 'Assignment', 'Project', 'Lab'] },
   weight:     { type: Number, max: 1 },  // stored as decimal (example: 0.1 for 10%)

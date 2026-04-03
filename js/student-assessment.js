@@ -41,7 +41,8 @@ function formatDate(iso) {
 
 // Helper: Check if this assessment has been submitted by current user
 function isSubmitted(assessmentId) {
-  return allSubmissions.some(sub => sub.assessmentId === assessmentId);
+  const assessment = allAssessments.find(a => a._id === assessmentId);
+  return assessment ? assessment.completed : false;
 }
 
 // Helper: Get earned marks from assessment (admin-set grades)
@@ -66,18 +67,9 @@ function rowClass(a) {
 async function loadAssessments() {
   try {
     allAssessments = await apiGetAssessments();
-    // Load user's submissions to determine completion status
-    const userId = getUser()?.id;
-    allSubmissions = [];
-    // Get all submissions for all assessments
-    for (const a of allAssessments) {
-      try {
-        const subs = await apiGetSubmissions(a._id);
-        allSubmissions.push(...subs);
-      } catch (err) {
-        // Ignore errors for individual assessment submissions
-      }
-    }
+    // The backend already adds a 'completed' flag to assessments for students
+    // No need to make separate API calls for submissions
+    allSubmissions = []; // Clear this since we're not using it anymore
     renderAssessments();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="7" style="color:#c0392b">${escapeHtml(err.message)}</td></tr>`;

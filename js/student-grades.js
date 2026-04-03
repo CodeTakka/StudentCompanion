@@ -1,19 +1,48 @@
-// Student read-only grades view for one course
+// Student Grades Page
 
-const params   = new URLSearchParams(window.location.search);
-const courseId = params.get('courseId');
+requireAuth();
 
-if (!courseId || courseId === "null") {
-  const tbody = document.getElementById("gradesTableBody");
-  tbody.innerHTML = `
-    <tr><td colspan="4" style="text-align:center;color:#888">
-      Please select a course from the dashboard.
-    </td></tr>`;
-  return;
+const courseSelect = document.getElementById("courseSelect");
+const gradesTableBody = document.getElementById("gradesTableBody");
+const courseAverageEl = document.getElementById("courseAverage");
+
+// Load all courses for dropdown
+async function loadCourseList() {
+  try {
+    const courses = await apiGetCourses();
+
+    if (!courses.length) {
+      gradesTableBody.innerHTML = `
+        <tr><td colspan="4" style="text-align:center;color:#888">
+          You are not enrolled in any courses.
+        </td></tr>`;
+      return;
+    }
+
+    // Populate dropdown
+    courseSelect.innerHTML =
+      `<option value="">— Select a Course —</option>` +
+      courses
+        .map(c => `<option value="${c._id}">${c.code} — ${c.name}</option>`)
+        .join("");
+
+    // If URL has ?courseId=, preselect it
+    const params = new URLSearchParams(window.location.search);
+    const courseId = params.get("courseId");
+
+    if (courseId) {
+      courseSelect.value = courseId;
+      loadGrades(courseId);
+    }
+
+  } catch (err) {
+    gradesTableBody.innerHTML =
+      `<tr><td colspan="4" style="color:#c0392b">${err.message}</td></tr>`;
+  }
 }
 
-async function loadGrades() {
-  const tbody = document.getElementById('gradesTableBody');
+// Load grades for selected course
+async function loadGrades(courseId) {
   try {
     const [course, assessments, avgData] = await Promise.all([
       apiGetCourse(courseId),
@@ -21,48 +50,63 @@ async function loadGrades() {
       apiGetCourseAverage(courseId)
     ]);
 
-    document.getElementById('pageTitle').textContent = `Grades for ${course.code} — ${course.name}`;
-
     if (!assessments.length) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888">No assessments yet.</td></tr>';
-    } else {
-      // Fetch submissions to get grades
-      const submissionsByAssessment = {};
-      for (const a of assessments) {
-        try {
-          const subs = await apiGetSubmissions(a._id);
-          if (subs.length > 0) {
-            submissionsByAssessment[a._id] = subs[0]; // Get latest submission
-          }
-        } catch (err) {
-          // Ignore errors
-        }
-      }
+      gradesTableBody.innerHTML =
+        `<tr><td colspan="4" style="text-align:center;color:#888">
+          No assessments yet.
+        </td></tr>`;
+      courseAverageEl.textContent = "—";
+      return;
+    }
 
-      tbody.innerHTML = assessments.map(a => {
-        const submission = submissionsByAssessment[a._id];
-        const earnedMarks = submission?.earnedMarks !== undefined && submission?.earnedMarks !== null
-          ? submission.earnedMarks
-          : (a.earnedMarks !== null && a.earnedMarks !== undefined ? a.earnedMarks : null);
-        const gradeText = earnedMarks !== null ? earnedMarks : '<em>Not graded</em>';
+    gradesTableBody.innerHTML = assessments
+      .map(a => {
+        const earned = a.earnedMarks ?? null;
+        const weightPct = Math.round(a.weight * 100);
+
+        const weightedGrade =
+          earned !== null && a.totalMarks
+            ? ((earned / a.totalMarks) * weightPct).toFixed(1) + "%"
+            : "—";
 
         return `
           <tr>
             <td>${a.name}</td>
-            <td>${gradeText}</td>
-            <td>${a.totalMarks !== null ? `0 – ${a.totalMarks}` : '—'}</td>
-            <td>${Math.round(a.weight * 100)}%</td>
+            <td>${earned !== null ? earned : "<em>Not graded</em>"}</td>
+            <td>${weightPct}%</td>
+            <td>${weightedGrade}</td>
           </tr>
         `;
-      }).join('');
-    }
+      })
+      .join("");
 
-    const avg = avgData.average;
-    document.getElementById('courseAverage').textContent = avg !== null ? `${avg}%` : '—';
+    courseAverageEl.textContent =
+      avgData.average !== null ? `${avgData.average}%` : "—";
 
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="4" style="color:#c0392b">${err.message}</td></tr>`;
+    gradesTableBody.innerHTML =
+      `<tr><td colspan="4" style="color:#c0392b">${err.message}</td></tr>`;
   }
 }
 
-loadGrades();
+// When user selects a course
+courseSelect.addEventListener("change", () => {
+  const selected = courseSelect.value;
+
+  if (!selected) {
+    gradesTableBody.innerHTML =
+      `<tr><td colspan="4" style="text-align:center;color:#888">
+        Please select a course to view your progress.
+      </td></tr>`;
+    courseAverageEl.textContent = "—";
+    return;
+  }
+
+  // Update URL
+  window.history.replaceState({}, "", `grades.html?courseId=${selected}`);
+
+  loadGrades(selected);
+});
+
+// Initialize page
+loadCourseList();
