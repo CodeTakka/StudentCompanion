@@ -84,22 +84,43 @@ async function renderStats(courses) {
   }
 
   const userId = getUser()?.id || null;
-  const averages = await Promise.all(
+
+  // 1. Fetch per-course averages (grades)
+  const gradeResults = await Promise.all(
     courses.map(c => apiGetCourseAverage(c._id, userId).catch(() => ({ average: null })))
   );
 
-  // Removes any null average
-  const validAvgs = averages.map(r => r.average).filter(v => v !== null);
-  const overallAvg = validAvgs.length
-    ? Math.round(validAvgs.reduce((s,v) => s+v, 0) / validAvgs.length)
+  const validGrades = gradeResults.map(r => r.average).filter(v => v !== null);
+  const overallGrade = validGrades.length
+    ? Math.round(validGrades.reduce((s,v) => s+v, 0) / validGrades.length)
     : null;
 
+   // 2. Compute progress across ALL courses combined
+  let totalVisible = 0;
+  let totalCompleted = 0;
+
+  for (const c of courses) {
+    const assessments = await apiGetAssessments(c._id);
+
+    const visible = assessments.filter(a => a.visible);
+    totalVisible += visible.length;
+
+    const completed = visible.filter(a => a.completed);
+    totalCompleted += completed.length;
+  }
+
+  const overallProgress =
+    totalVisible > 0
+      ? Math.round((totalCompleted / totalVisible) * 100)
+      : null;
+
+  // 3. Update UI
   statCourses.textContent     = courses.length;
-  statAvgProgress.textContent = overallAvg !== null ? `${overallAvg}%` : '—';
-  statAvgGrade.textContent    = overallAvg !== null ? `${overallAvg}%` : '—';
+  statAvgProgress.textContent = overallProgress !== null ? `${overallProgress}%` : '—';
+  statAvgGrade.textContent    = overallGrade !== null ? `${overallGrade}%` : '—';
   statTerm.textContent        = courses[0]?.term || '—';
 
-  renderChart(courses, averages);
+  renderChart(courses, gradeResults);
 }
 
 function renderSnapshot(courses) {
