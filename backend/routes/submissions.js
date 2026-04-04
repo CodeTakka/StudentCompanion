@@ -342,17 +342,6 @@ router.delete("/:id", adminOnly, async (req, res) => {
   }
 });
 
-// GET /api/submissions
-router.get("/submissions", protect, async (req, res) => {
-  try {
-    const studentId = req.user.id;
-    const subs = await Submission.find({ studentId });
-    res.json(subs);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to load submissions." });
-  }
-});
-
 // GET /api/submissions/:id/download
 // Download submitted file
 router.get("/:id/download", async (req, res) => {
