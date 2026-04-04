@@ -226,7 +226,7 @@ async function apiSubmitAssessment(assessmentId, file) {
 
 async function apiGetSubmissions(assessmentId, studentId = null) {
   const query = studentId ? `?assessmentId=${assessmentId}&studentId=${studentId}` : `?assessmentId=${assessmentId}`;
-  return apiFetch(`/submissions${query}`);
+  return apiFetch(`/submissions/by-assessment${query}`);
 }
 
 async function apiGetAllSubmissions() {
