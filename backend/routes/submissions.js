@@ -61,6 +61,7 @@ router.post("/", upload.single("file"), async (req, res) => {
       fileName: req.file.originalname,
       filePath: req.file.path,
       isLate,
+      status: "submitted",
     });
 
     await submission.save();
@@ -76,12 +77,8 @@ router.post("/", upload.single("file"), async (req, res) => {
     });
   } catch (err) {
     // Clean up file if error occurs
-    if (req.file) {
-      fs.unlinkSync(req.file.path);
-    }
-    res
-      .status(500)
-      .json({ message: "Failed to submit assessment.", error: err.message });
+    if (req.file) fs.unlinkSync(req.file.path);
+    res.status(500).json({ message: "Failed to submit assessment." });
   }
 });
 
@@ -92,11 +89,9 @@ router.post("/grade", adminOnly, async (req, res) => {
     const { assessmentId, studentId, earnedMarks, feedback } = req.body;
 
     if (!assessmentId || !studentId || earnedMarks == null) {
-      return res
-        .status(400)
-        .json({
-          message: "assessmentId, studentId, and earnedMarks are required.",
-        });
+      return res.status(400).json({
+        message: "assessmentId, studentId, and earnedMarks are required.",
+      });
     }
 
     const assessment = await Assessment.findById(assessmentId);
@@ -134,16 +129,24 @@ router.post("/grade", adminOnly, async (req, res) => {
     await submission.save();
     res.json(submission);
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        message: "Failed to save graded submission.",
-        error: err.message,
-      });
+    res.status(500).json({
+      message: "Failed to save graded submission.",
+      error: err.message,
+    });
   }
 });
 
 router.get("/", async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const subs = await Submission.find({ studentId });
+    res.json(subs);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load submissions." });
+  }
+});
+
+router.get("/by-assessment", async (req, res) => {
   try {
     const { assessmentId, studentId } = req.query;
 
@@ -271,7 +274,7 @@ router.put("/:id", adminOnly, async (req, res) => {
 });
 
 // DELETE /api/submissions/:assessmentId/cancel
-router.delete('/:assessmentId/cancel', protect, async (req, res) => {
+router.delete("/:assessmentId/cancel", protect, async (req, res) => {
   try {
     const assessmentId = req.params.assessmentId;
     const studentId = req.user.id;
@@ -293,7 +296,7 @@ router.delete('/:assessmentId/cancel', protect, async (req, res) => {
     // Remove file but keep grade
     sub.fileName = null;
     sub.filePath = null;
-    sub.isLate = false;
+    sub.status = "cancelled";
     await sub.save();
 
     return res.json({ message: "Submission cancelled." });
@@ -336,6 +339,17 @@ router.delete("/:id", adminOnly, async (req, res) => {
     res.json({ message: "Submission deleted." });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete submission." });
+  }
+});
+
+// GET /api/submissions
+router.get("/submissions", protect, async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const subs = await Submission.find({ studentId });
+    res.json(subs);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load submissions." });
   }
 });
 

@@ -42,7 +42,7 @@ function formatDate(iso) {
 // Helper: Check if this assessment has been submitted by current user
 function isSubmitted(assessmentId) {
   const sub = allSubmissions.find(s => s.assessmentId === assessmentId);
-  return sub && sub.filePath; // submitted only if file exists
+  return sub && sub.status !== "cancelled";
 }
 
 // Helper: Get earned marks from assessment (admin-set grades)
@@ -51,30 +51,23 @@ function getEarnedMarks(assessment) {
 }
 
 function statusBadge(a) {
-  const submitted = isSubmitted(a._id);
+  const sub = allSubmissions.find(s => s.assessmentId === a._id);
+  const submitted = sub && sub.status !== "cancelled";
   const graded = a.earnedMarks !== null;
 
-  // Case 1: Graded AND submitted
-  if (graded && submitted) {
-    return '<span class="status done">Graded</span>';
-  }
-
-  // Case 2: Graded BUT not submitted (file cancelled)
-  if (graded && !submitted) {
+  if (graded && sub && sub.status === "cancelled")
     return '<span class="status graded-missing">Unsubmitted (graded)</span>';
-  }
 
-  // Case 3: Submitted but not graded
-  if (submitted) {
+  if (graded)
+    return '<span class="status done">Graded</span>';
+
+  if (submitted)
     return '<span class="status submitted">Submitted</span>';
-  }
 
-  // Case 4: Not submitted + overdue
-  if (a.dueDate && new Date(a.dueDate) < new Date()) {
+  const overdue = a.dueDate && new Date(a.dueDate) < new Date();
+  if (overdue)
     return '<span class="status overdue">Overdue</span>';
-  }
 
-  // Case 5: Not submitted + upcoming
   return '<span class="status comingup">Upcoming</span>';
 }
 
@@ -87,9 +80,7 @@ function rowClass(a) {
 async function loadAssessments() {
   try {
     allAssessments = await apiGetAssessments();
-    // The backend already adds a 'completed' flag to assessments for students
-    // No need to make separate API calls for submissions
-    allSubmissions = []; // Clear this since we're not using it anymore
+    allSubmissions = await apiGetAllSubmissions();
     renderAssessments();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="7" style="color:#c0392b">${escapeHtml(err.message)}</td></tr>`;

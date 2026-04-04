@@ -229,6 +229,10 @@ async function apiGetSubmissions(assessmentId, studentId = null) {
   return apiFetch(`/submissions${query}`);
 }
 
+async function apiGetAllSubmissions() {
+  return apiFetch('/submissions');
+}
+
 async function apiUpdateSubmission(submissionId, data) {
   return apiFetch(`/submissions/${submissionId}`, {
     method: "PUT",
@@ -246,7 +250,6 @@ async function apiGradeSubmission(data) {
 async function apiGetAssessmentSubmissions(assessmentId) {
   return apiFetch(`/submissions/assessment/${assessmentId}/all`);
 }
-
 
 async function apiCancelSubmission(assessmentId) {
   const res = await fetch(`/api/submissions/${assessmentId}/cancel`, {
