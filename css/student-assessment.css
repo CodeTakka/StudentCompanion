@@ -39,6 +39,12 @@
   background: #b26a00;
   color: #ddd;
 }
+
+.status.graded-missing {
+  background: #f39c12;
+  color: white;
+}
+
 .overdue-row {
   background: #fde4e4;
 }

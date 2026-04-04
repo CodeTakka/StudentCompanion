@@ -281,7 +281,7 @@ router.delete('/:assessmentId/cancel', protect, async (req, res) => {
       return res.status(404).json({ message: "No submission to cancel." });
     }
 
-    // Safely delete file if it exists
+    // Delete file safely
     if (sub.filePath && fs.existsSync(sub.filePath)) {
       try {
         fs.unlinkSync(sub.filePath);
@@ -290,14 +290,13 @@ router.delete('/:assessmentId/cancel', protect, async (req, res) => {
       }
     }
 
-    // Keep the grade, remove only the file
+    // Remove file but keep grade
     sub.fileName = null;
     sub.filePath = null;
     sub.isLate = false;
-    sub.status = 'pending'; // or 'submitted'
     await sub.save();
 
-    return res.json({ message: "Submission cancelled (file removed, grade kept)." });
+    return res.json({ message: "Submission cancelled." });
   } catch (err) {
     console.error("CANCEL ERROR:", err);
     res.status(500).json({ message: "Failed to cancel submission." });

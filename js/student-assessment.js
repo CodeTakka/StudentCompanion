@@ -41,8 +41,8 @@ function formatDate(iso) {
 
 // Helper: Check if this assessment has been submitted by current user
 function isSubmitted(assessmentId) {
-  const assessment = allAssessments.find(a => a._id === assessmentId);
-  return assessment ? assessment.completed : false;
+  const sub = allSubmissions.find(s => s.assessmentId === assessmentId);
+  return sub && sub.filePath; // submitted only if file exists
 }
 
 // Helper: Get earned marks from assessment (admin-set grades)
@@ -52,9 +52,29 @@ function getEarnedMarks(assessment) {
 
 function statusBadge(a) {
   const submitted = isSubmitted(a._id);
-  if (a.earnedMarks !== null) return '<span class="status done">Graded</span>';
-  if (submitted) return '<span class="status submitted">Submitted</span>';
-  if (a.dueDate && new Date(a.dueDate) < new Date()) return '<span class="status overdue">Overdue</span>';
+  const graded = a.earnedMarks !== null;
+
+  // Case 1: Graded AND submitted
+  if (graded && submitted) {
+    return '<span class="status done">Graded</span>';
+  }
+
+  // Case 2: Graded BUT not submitted (file cancelled)
+  if (graded && !submitted) {
+    return '<span class="status graded-missing">Unsubmitted (graded)</span>';
+  }
+
+  // Case 3: Submitted but not graded
+  if (submitted) {
+    return '<span class="status submitted">Submitted</span>';
+  }
+
+  // Case 4: Not submitted + overdue
+  if (a.dueDate && new Date(a.dueDate) < new Date()) {
+    return '<span class="status overdue">Overdue</span>';
+  }
+
+  // Case 5: Not submitted + upcoming
   return '<span class="status comingup">Upcoming</span>';
 }
 
