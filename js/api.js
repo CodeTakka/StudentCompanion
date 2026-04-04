@@ -130,7 +130,7 @@ async function apiGetCourse(id) {
 }
 
 async function apiGetCourseAverage(id, studentId = null) {
-  const query = studentId ? `?studentId=${studentId}` : '';
+  const query = studentId ? `?studentId=${studentId}` : "";
   return apiFetch(`/courses/${id}/average${query}`);
 }
 
@@ -160,7 +160,9 @@ async function apiEnrollCourse(id) {
 // Assessments
 
 async function apiGetAssessments(courseId = null) {
-  return apiFetch(courseId ? `/assessments?courseId=${courseId}` : '/assessments');
+  return apiFetch(
+    courseId ? `/assessments?courseId=${courseId}` : "/assessments",
+  );
 }
 
 async function apiGetUpcomingAssessments() {
@@ -193,8 +195,8 @@ async function apiDeleteAssessment(id) {
 
 async function apiSubmitAssessment(assessmentId, file) {
   const formData = new FormData();
-  formData.append('assessmentId', assessmentId);
-  formData.append('file', file);
+  formData.append("assessmentId", assessmentId);
+  formData.append("file", file);
 
   const token = getToken();
   const headers = {};
@@ -224,13 +226,35 @@ async function apiSubmitAssessment(assessmentId, file) {
   return data;
 }
 
+async function apiSubmitAssessmentWithoutFile(assessmentId) {
+  const fd = new FormData();
+  fd.append("assessmentId", assessmentId);
+  fd.append("noFile", "true");
+
+  const token = getToken();
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`/api/submissions`, {
+    method: "POST",
+    headers,
+    body: fd
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message);
+  return data;
+}
+
 async function apiGetSubmissions(assessmentId, studentId = null) {
-  const query = studentId ? `?assessmentId=${assessmentId}&studentId=${studentId}` : `?assessmentId=${assessmentId}`;
+  const query = studentId
+    ? `?assessmentId=${assessmentId}&studentId=${studentId}`
+    : `?assessmentId=${assessmentId}`;
   return apiFetch(`/submissions/by-assessment${query}`);
 }
 
 async function apiGetAllSubmissions() {
-  return apiFetch('/submissions');
+  return apiFetch("/submissions");
 }
 
 async function apiUpdateSubmission(submissionId, data) {
@@ -254,7 +278,7 @@ async function apiGetAssessmentSubmissions(assessmentId) {
 async function apiCancelSubmission(assessmentId) {
   const res = await fetch(`/api/submissions/${assessmentId}/cancel`, {
     method: "DELETE",
-    headers: { Authorization: "Bearer " + getToken() }
+    headers: { Authorization: "Bearer " + getToken() },
   });
   if (!res.ok) throw new Error("Failed to cancel submission");
   return res.json();
@@ -283,9 +307,12 @@ async function downloadSubmissionFile(submissionId) {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/submissions/${submissionId}/download`, {
-      headers
-    });
+    const res = await fetch(
+      `${API_BASE}/submissions/${submissionId}/download`,
+      {
+        headers,
+      },
+    );
 
     if (res.status === 401) {
       clearSession();
@@ -302,7 +329,9 @@ async function downloadSubmissionFile(submissionId) {
     const contentDisposition = res.headers.get("Content-Disposition");
     let filename = "download";
     if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=(["\']?)([^\n"\']*)\1/);
+      const filenameMatch = contentDisposition.match(
+        /filename[^;=\n]*=(["\']?)([^\n"\']*)\1/,
+      );
       if (filenameMatch) filename = filenameMatch[2];
     }
 

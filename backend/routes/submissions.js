@@ -24,42 +24,38 @@ const verifyAccess = async (courseId, userId, role) => {
 // Student submits a file for an assessment
 router.post("/", upload.single("file"), async (req, res) => {
   try {
-    const { assessmentId } = req.body;
+    // Support both JSON and multipart/form-data
+    const assessmentId = req.body.assessmentId;
+    const noFile = req.body.noFile === "true" || req.body.noFile === true;
 
-    if (!assessmentId || !req.file) {
-      return res
-        .status(400)
-        .json({ message: "assessmentId and file are required." });
+    if (!assessmentId) {
+      return res.status(400).json({ message: "assessmentId is required." });
     }
 
-    // Verify assessment exists
     const assessment = await Assessment.findById(assessmentId);
     if (!assessment) {
-      // Clean up uploaded file if assessment not found
-      fs.unlinkSync(req.file.path);
+      if (req.file) fs.unlinkSync(req.file.path);
       return res.status(404).json({ message: "Assessment not found." });
     }
 
-    // Verify student is enrolled in the course
     const access = await verifyAccess(
       assessment.courseId,
       req.user.id,
       req.user.role,
     );
     if (access.error) {
-      fs.unlinkSync(req.file.path);
+      if (req.file) fs.unlinkSync(req.file.path);
       return res.status(access.status).json({ message: access.error });
     }
 
-    // Check if submission is late
     const isLate = assessment.dueDate && new Date() > assessment.dueDate;
 
-    // Create submission record
+    // ⭐ Create submission with OR without file
     const submission = new Submission({
       assessmentId,
       studentId: req.user.id,
-      fileName: req.file.originalname,
-      filePath: req.file.path,
+      fileName: req.file ? req.file.originalname : null,
+      filePath: req.file ? req.file.path : null,
       isLate,
       status: "submitted",
     });
@@ -67,7 +63,9 @@ router.post("/", upload.single("file"), async (req, res) => {
     await submission.save();
 
     res.status(201).json({
-      message: "File submitted successfully.",
+      message: req.file
+        ? "File submitted successfully."
+        : "Submitted without file.",
       submission: {
         id: submission._id,
         fileName: submission.fileName,
@@ -76,13 +74,11 @@ router.post("/", upload.single("file"), async (req, res) => {
       },
     });
   } catch (err) {
-    // Clean up file if error occurs
     if (req.file) fs.unlinkSync(req.file.path);
     res.status(500).json({ message: "Failed to submit assessment." });
   }
 });
 
-// GET /api/submissions?assessmentId=...&studentId=...
 // Fetch submissions for an assessment + student
 router.post("/grade", adminOnly, async (req, res) => {
   try {
@@ -138,6 +134,7 @@ router.post("/grade", adminOnly, async (req, res) => {
 
 router.get("/", async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store");
     const studentId = req.user.id;
     const subs = await Submission.find({ studentId });
     res.json(subs);
@@ -148,6 +145,8 @@ router.get("/", async (req, res) => {
 
 router.get("/by-assessment", async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store");
+    
     const { assessmentId, studentId } = req.query;
 
     if (!assessmentId) {
@@ -193,6 +192,8 @@ router.get("/by-assessment", async (req, res) => {
 // Admin fetches all submissions for an assessment
 router.get("/assessment/:assessmentId/all", adminOnly, async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store");
+
     const { assessmentId } = req.params;
 
     const assessment = await Assessment.findById(assessmentId);
@@ -345,6 +346,8 @@ router.delete("/:id", adminOnly, async (req, res) => {
 // GET /api/submissions/:id/download
 // Download submitted file
 router.get("/:id/download", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+
   try {
     const submission = await Submission.findById(req.params.id);
     if (!submission) {
