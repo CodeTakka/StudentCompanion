@@ -89,7 +89,10 @@ function renderAssessments() {
 
   tbody.innerHTML = filtered.map(a => {
     const dueDate = formatDate(a.dueDate);
-    const courseInfo = a.courseId ? `${escapeHtml(a.courseId.code)} — ${escapeHtml(a.courseId.name)}` : 'Unknown';
+    const courseInfo = a.courseId
+      ? `${escapeHtml(a.courseId.code)} — ${escapeHtml(a.courseId.name)}`
+      : 'Unknown';
+
     const gradeText = getEarnedMarks(a);
     const submitted = isSubmitted(a._id);
     const actionLabel = submitted ? 'Resubmit' : 'Submit';
@@ -104,9 +107,24 @@ function renderAssessments() {
         <td>${Math.round((a.weight || 0) * 100)}%</td>
         <td>${statusBadge(a)}</td>
         <td>
-          <button class="btn small" onclick="openSubmissionModal('${a._id}', '${escapedName}', '${dueDate}', ${a.totalMarks || 'null'}, ${submitted})">${actionLabel}</button>
-          <div style="font-size: 12px; margin-top: 5px; color: #666;">${submitted ? 'Submitted' : 'Not submitted'}</div>
-          <div style="font-size: 12px; color: #999;">${courseInfo}</div>
+          <button class="btn small"
+            onclick="openSubmissionModal('${a._id}', '${escapedName}', '${dueDate}', ${a.totalMarks || 'null'}, ${submitted})">
+            ${actionLabel}
+          </button>
+
+          ${submitted ? `
+            <button class="btn small danger" style="margin-top:6px"
+              onclick="cancelSubmission('${a._id}')">
+              Cancel
+            </button>
+          ` : ''}
+
+          <div style="font-size: 12px; margin-top: 5px; color: #666;">
+            ${submitted ? 'Submitted' : 'Not submitted'}
+          </div>
+          <div style="font-size: 12px; color: #999;">
+            ${courseInfo}
+          </div>
         </td>
       </tr>
     `;
@@ -148,6 +166,18 @@ window.openSubmissionModal = function (assessmentId, name, dueDate, totalMarks, 
   
   // Show modal
   modal.classList.remove('hidden');
+};
+
+window.cancelSubmission = async function (assessmentId) {
+  if (!confirm("Are you sure you want to cancel your submission?")) return;
+
+  try {
+    await apiCancelSubmission(assessmentId);
+    alert("Submission cancelled.");
+    loadAssessments();
+  } catch (err) {
+    alert("Error cancelling submission: " + err.message);
+  }
 };
 
 window.closeSubmissionModal = function () {

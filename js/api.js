@@ -247,6 +247,16 @@ async function apiGetAssessmentSubmissions(assessmentId) {
   return apiFetch(`/submissions/assessment/${assessmentId}/all`);
 }
 
+
+async function apiCancelSubmission(assessmentId) {
+  const res = await fetch(`/api/submissions/${assessmentId}/cancel`, {
+    method: "DELETE",
+    headers: { Authorization: "Bearer " + getToken() }
+  });
+  if (!res.ok) throw new Error("Failed to cancel submission");
+  return res.json();
+}
+
 // Admin
 
 async function apiGetStats() {
