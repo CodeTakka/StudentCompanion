@@ -7,9 +7,11 @@ if (!courseId) window.location.href = "dashboard.html";
 
 async function loadCourseInfo() {
   try {
+    const user = getUser();
+
     const [course, avgData, assessments] = await Promise.all([
       apiGetCourse(courseId),
-      apiGetCourseAverage(courseId),
+      apiGetCourseAverage(courseId, user.id),
       apiGetAssessments(courseId),
     ]);
 
