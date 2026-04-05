@@ -1,4 +1,4 @@
-// shared utility for all fetch calls to the backend
+// Shared utility for all fetch calls to the backend
 // Every page that needs the API should load this script first.
 
 const API_BASE = "/api";

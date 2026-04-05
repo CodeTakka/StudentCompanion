@@ -1,4 +1,4 @@
-// student-assessment.js — student assessment view with submission capability
+// Student assessment view with submission capability
 
 const params = new URLSearchParams(window.location.search);
 const initialCourseId = params.get("courseId");

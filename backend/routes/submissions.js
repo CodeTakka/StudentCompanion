@@ -50,7 +50,7 @@ router.post("/", upload.single("file"), async (req, res) => {
 
     const isLate = assessment.dueDate && new Date() > assessment.dueDate;
 
-    // ⭐ Create submission with OR without file
+    // Create submission with or without file
     const submission = new Submission({
       assessmentId,
       studentId: req.user.id,
