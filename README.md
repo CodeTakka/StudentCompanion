@@ -30,6 +30,3 @@ This project was built to simplify academic management and demonstrate full-stac
 - 📈 Data visualization (charts)
 - 🔔 Notifications for deadlines
 - ☁️ Deployment
-
-## 👥 Note
-This project was originally developed as part of a team collaboration.
